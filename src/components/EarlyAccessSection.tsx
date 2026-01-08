@@ -79,7 +79,7 @@ const EarlyAccessSection = () => {
         <div className="max-w-xl mx-auto text-center">
           {/* Icon */}
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 mb-6">
-            {isVerified ? (
+            {isAuthenticated ? (
               <Unlock className="w-8 h-8 text-primary" />
             ) : (
               <KeyRound className="w-8 h-8 text-primary" />
@@ -92,44 +92,64 @@ const EarlyAccessSection = () => {
           </h2>
           
           <p className="text-muted-foreground mb-8">
-            Have an access code? Enter it below to unlock Klaaro early.
+            {isAuthenticated 
+              ? "You have early access! Go to the dashboard to start building."
+              : "Have an access code? Enter it below to unlock Klaaro early."
+            }
           </p>
 
-          {/* Code Form */}
-          {!isVerified ? (
+          {/* Code Form or Dashboard Link */}
+          {!isAuthenticated ? (
             <form onSubmit={handleCodeSubmit} className="flex flex-col sm:flex-row gap-3 max-w-sm mx-auto">
               <Input
                 type="text"
                 placeholder="ENTER-CODE"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
+                disabled={isVerifying}
                 className="flex-1 h-12 bg-background border-border text-foreground placeholder:text-muted-foreground text-center tracking-[0.3em] uppercase font-mono"
               />
               <Button
                 type="submit"
                 variant="secondary"
+                disabled={isVerifying}
                 className="h-12 px-6 bg-secondary text-secondary-foreground hover:bg-muted transition-all duration-300"
               >
-                Verify
+                {isVerifying ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Verify"
+                )}
               </Button>
             </form>
           ) : (
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 max-w-sm mx-auto">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🎉</span>
+            <div className="space-y-4">
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 max-w-sm mx-auto">
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🎉</span>
+                </div>
+                <p className="text-foreground font-semibold text-lg">
+                  You're in!
+                </p>
+                <p className="text-muted-foreground text-sm mt-2">
+                  Start building AI models with our AutoML platform.
+                </p>
               </div>
-              <p className="text-foreground font-semibold text-lg">
-                You're in!
-              </p>
-              <p className="text-muted-foreground text-sm mt-2">
-                Please wait for some days. We'll send you an email with further instructions.
-              </p>
+              <Button 
+                onClick={handleGoToDashboard}
+                className="bg-primary hover:bg-primary/90 h-12 px-8"
+              >
+                Go to Dashboard
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           )}
 
-          <p className="text-sm text-muted-foreground mt-6">
-            Don't have a code? <a href="#" className="text-primary hover:underline">Join the waitlist above</a>
-          </p>
+          {!isAuthenticated && (
+            <p className="text-sm text-muted-foreground mt-6">
+              Don't have a code? <a href="#" className="text-primary hover:underline">Join the waitlist above</a>
+            </p>
+          )}
         </div>
       </div>
     </section>
