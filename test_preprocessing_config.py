@@ -263,7 +263,7 @@ def test_preprocessing_configuration():
             "description": "Test custom preprocessing configuration",
             "data_source": "upload"
         }
-        response = requests.post(f"{API_BASE}/projects", json=project_data2, timeout=10)
+        response = requests.post(f"{API_BASE}/projects/", json=project_data2, timeout=10)
         
         if response.status_code != 200:
             print(f"❌ Failed to create second project: {response.text}")
