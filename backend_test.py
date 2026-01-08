@@ -613,11 +613,9 @@ def test_data_exploration():
         
         # Test 1: Filter data
         try:
-            filter_data = {
-                "filters": [
-                    {"column": "department", "operator": "eq", "value": "Engineering"}
-                ]
-            }
+            filter_data = [
+                {"column": "department", "operator": "eq", "value": "Engineering"}
+            ]
             response = requests.post(f"{API_BASE}/datasets/{csv_id}/filter", 
                                    json=filter_data, timeout=10)
             print(f"Filter Status: {response.status_code}")
