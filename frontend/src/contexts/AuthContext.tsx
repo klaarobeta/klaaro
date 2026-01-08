@@ -70,12 +70,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = (code: string): boolean => {
     if (code.toLowerCase() === VALID_CODE) {
+      const authData = { 
+        code, 
+        timestamp: new Date().toISOString(),
+        persistent: true
+      };
       setIsAuthenticated(true);
       setAccessCode(code);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-        code, 
-        timestamp: new Date().toISOString() 
-      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
+      
+      // Also set a backup flag
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
+      
       return true;
     }
     return false;
