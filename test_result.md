@@ -248,16 +248,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "DataFilter Component"
-    - "DataCharts Component"
-    - "Normalization Component"
-    - "Encoding Component"
-    - "DataSplit Component"
-    - "ExportData Component"
-    - "Data Explorer UI Integration"
-    - "Dataset List and Navigation"
+    - "Part 7: Preprocessing Configuration UI - Custom preprocessing flow"
+    - "Project workflow: Dataset -> Analysis -> Target Selection -> Preprocessing"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
@@ -265,3 +259,5 @@ agent_communication:
     message: "Completed comprehensive testing of AI/ML Platform Data Exploration and Preprocessing features (Parts 9-15). All 11 backend APIs are working correctly. Created comprehensive test suite in /app/backend_test.py covering all functionality. All tests pass successfully with proper error handling and response validation."
   - agent: "testing"
     message: "✅ COMPREHENSIVE UI TESTING COMPLETED: Successfully tested complete Data Explorer UI at https://datawiz-ml.preview.emergentagent.com. All frontend components working perfectly: 1) Dataset navigation with Upload/Datasets buttons ✅ 2) CSV file listing with action buttons (preview, stats, explore, delete) ✅ 3) Data Explorer with all 7 tabs functional: Filter & Search (search input, column selector, add filter), Charts (Bar/Histogram/Scatter with chart display), Missing Values, Normalize (3 methods with column selection), Encode (3 methods with column selection), Split (sliders + visual bar + shuffle), Export (CSV/JSON + download) ✅ 4) Data preview panel with table headers and rows ✅ 5) Complete frontend-backend integration working ✅. All test scenarios from review request successfully validated."
+  - agent: "main"
+    message: "Testing Part 7: Preprocessing Configuration UI. Need to verify: 1) Auto preprocessing flow works 2) Custom preprocessing configuration UI displays correctly 3) Custom config can be modified and applied 4) Results view shows correct stats after preprocessing"
