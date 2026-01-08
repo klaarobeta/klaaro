@@ -19,6 +19,11 @@ async def lifespan(app: FastAPI):
     global db_client, db
     db_client = AsyncIOMotorClient(MONGO_URL)
     db = db_client[DB_NAME]
+    
+    # Pass db to dataset router
+    from routes import dataset as dataset_module
+    dataset_module.db = db
+    
     print(f"Connected to MongoDB: {DB_NAME}")
     yield
     db_client.close()
