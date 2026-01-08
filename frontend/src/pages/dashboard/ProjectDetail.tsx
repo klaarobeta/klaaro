@@ -534,10 +534,34 @@ export default function ProjectDetail() {
       )}
 
       {/* Preprocessing Results */}
-      {hasPreprocessing && (
+      {hasPreprocessing && !modelSelection && !trainingResults && (
         <PreprocessingResultsView
           results={project.preprocessing_results as PreprocessingResults}
           onContinue={handleContinueToTraining}
+        />
+      )}
+
+      {/* Model Selection (after preprocessing, before training) */}
+      {hasPreprocessing && modelSelection && !trainingResults && project.status !== 'training' && (
+        <ModelSelectionView
+          selection={modelSelection}
+          onUpdateSelection={handleUpdateModelSelection}
+          onStartTraining={handleStartTraining}
+          isTraining={startingTraining}
+        />
+      )}
+
+      {/* Training in Progress */}
+      {project.status === 'training' && trainingProgress && (
+        <TrainingProgressView progress={trainingProgress} />
+      )}
+
+      {/* Training Results */}
+      {trainingResults && (
+        <TrainingResultsView
+          results={trainingResults}
+          taskType={project.task_type || 'classification'}
+          onContinue={() => toast({ title: 'Coming soon', description: 'Model export will be available in the next update' })}
         />
       )}
 
