@@ -139,9 +139,9 @@ export default function ProjectDetail() {
     }
   }, [projectId, fetchProject])
 
-  // Poll for analysis/preprocessing completion
+  // Poll for analysis/preprocessing/training completion
   useEffect(() => {
-    if (project?.status === 'analyzing' || project?.status === 'preprocessing') {
+    if (project?.status === 'analyzing' || project?.status === 'preprocessing' || project?.status === 'training') {
       const interval = setInterval(async () => {
         await fetchProject()
       }, 2000)
