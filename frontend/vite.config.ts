@@ -12,6 +12,11 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
-    allowedHosts: ['aiml-platform.preview.emergentagent.com', 'datamind-ml.preview.emergentagent.com', 'localhost'],
+    allowedHosts: [
+      'aiml-platform.preview.emergentagent.com', 
+      'datamind-ml.preview.emergentagent.com', 
+      'train-genius-2.preview.emergentagent.com',
+      'localhost'
+    ],
   },
 })
