@@ -308,8 +308,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Part 7: Preprocessing Configuration UI - COMPLETED ✅"
-    - "Project workflow: Dataset -> Analysis -> Target Selection -> Preprocessing - COMPLETED ✅"
+    - "Part 8: Automatic Model Selection API"
+    - "Part 9: Model Training Engine"
+    - "Complete workflow: Preprocessing -> Model Selection -> Training -> Results"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -322,4 +323,6 @@ agent_communication:
   - agent: "main"
     message: "Testing Part 7: Preprocessing Configuration UI. Need to verify: 1) Auto preprocessing flow works 2) Custom preprocessing configuration UI displays correctly 3) Custom config can be modified and applied 4) Results view shows correct stats after preprocessing"
   - agent: "testing"
-    message: "✅ PART 7 PREPROCESSING CONFIGURATION UI TESTING COMPLETED: Successfully tested complete AutoML preprocessing pipeline. All 5 backend APIs working perfectly: 1) GET /api/preprocessing/{project_id}/config - Auto-generates config with 19 columns, proper role assignments ✅ 2) POST /api/preprocessing/auto - Triggers background preprocessing (8 train, 2 test samples) ✅ 3) POST /api/preprocessing/custom - Applies custom config with validation split (5 train, 3 test, 2 val) ✅ 4) GET /api/preprocessing/{project_id}/results - Returns comprehensive stats and 18 feature names ✅ 5) GET /api/preprocessing/{project_id}/preview - Shows preprocessed data preview with shapes ✅. Complete project workflow tested: Project creation → Dataset upload → Analysis → Target selection → Auto/Custom preprocessing → Results validation. All test scenarios from review request successfully validated."
+    message: "✅ Part 7: Preprocessing Configuration UI - All APIs Working. Auto and custom preprocessing tested successfully."
+  - agent: "main"
+    message: "Implemented Part 8 (Model Selection) and Part 9 (Training Engine). Testing APIs: 1) POST /api/training/select-models - Auto-select models 2) GET /api/training/catalog/{task_type} - Get model catalog 3) POST /api/training/start-training - Start training 4) GET /api/training/{project_id}/training-status - Get training progress 5) GET /api/training/{project_id}/training-results - Get results"
