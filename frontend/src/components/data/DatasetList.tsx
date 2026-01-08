@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Dataset } from '@/types/dataset'
 import { listDatasets, deleteDataset } from '@/services/datasetService'
-import { FileText, Image, FileJson, File, Trash2, Eye, BarChart2, Loader2 } from 'lucide-react'
+import { FileText, Image, FileJson, File, Trash2, Eye, BarChart2, Loader2, Wrench } from 'lucide-react'
 
 interface Props {
   onPreview: (dataset: Dataset) => void
   onStats: (dataset: Dataset) => void
+  onExplore?: (dataset: Dataset) => void
   refreshTrigger?: number
 }
 
