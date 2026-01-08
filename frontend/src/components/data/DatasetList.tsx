@@ -138,6 +138,15 @@ export default function DatasetList({ onPreview, onStats, onExplore, refreshTrig
                   >
                     <BarChart2 className="w-4 h-4" />
                   </button>
+                  {dataset.category === 'csv' && onExplore && (
+                    <button
+                      onClick={() => onExplore(dataset)}
+                      className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                      title="Explore & Preprocess"
+                    >
+                      <Wrench className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDelete(dataset.id)}
                     disabled={deleting === dataset.id}
