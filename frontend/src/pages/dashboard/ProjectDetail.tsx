@@ -572,11 +572,19 @@ export default function ProjectDetail() {
 
       {/* Training Results */}
       {trainingResults && (
-        <TrainingResultsView
-          results={trainingResults}
-          taskType={project.task_type || 'classification'}
-          onContinue={() => toast({ title: 'Coming soon', description: 'Model export will be available in the next update' })}
-        />
+        <>
+          <TrainingResultsView
+            projectId={projectId!}
+            results={trainingResults}
+            taskType={project.task_type || 'classification'}
+          />
+          
+          {/* PART 15: Prediction View */}
+          <PredictionView
+            projectId={projectId!}
+            taskType={project.task_type || 'classification'}
+          />
+        </>
       )}
 
       {/* Workflow Progress */}
