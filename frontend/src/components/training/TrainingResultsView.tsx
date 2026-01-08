@@ -5,25 +5,25 @@ import {
   XCircle,
   ChevronDown,
   ChevronRight,
-  BarChart2,
-  TrendingUp,
-  Award,
+  BarChart3,
   Download,
-  ArrowRight,
+  Package,
+  Award,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TrainingResults, TrainingResult } from '@/services/trainingService'
+import { trainingService } from '@/services/trainingService'
 
 interface TrainingResultsViewProps {
+  projectId: string
   results: TrainingResults
   taskType: string
-  onContinue?: () => void
 }
 
 export default function TrainingResultsView({
+  projectId,
   results,
   taskType,
-  onContinue
 }: TrainingResultsViewProps) {
   const [expandedModels, setExpandedModels] = useState<string[]>([results.best_model?.model_id || ''])
 
@@ -36,6 +36,9 @@ export default function TrainingResultsView({
   const formatMetric = (value: number, metricName: string): string => {
     if (metricName === 'mse' || metricName === 'rmse' || metricName === 'mae') {
       return value.toFixed(4)
+    }
+    if (metricName.includes('cv_')) {
+      return (value * 100).toFixed(2) + '%'
     }
     return (value * 100).toFixed(2) + '%'
   }
@@ -52,187 +55,253 @@ export default function TrainingResultsView({
       mae: 'MAE',
       r2_score: 'R² Score',
       cv_mean: 'CV Mean',
-      cv_std: 'CV Std',
+      cv_std: 'CV Std Dev',
     }
     return labels[metric] || metric
   }
 
-  const primaryMetric = taskType === 'classification' ? 'f1_score' : 'r2_score'
+  // Get primary metric for comparison
+  const getPrimaryMetric = (result: TrainingResult): number => {
+    if (taskType === 'classification') {
+      return result.metrics?.f1_score || result.metrics?.accuracy || 0
+    } else {
+      return result.metrics?.r2_score || 0
+    }
+  }
+
+  const getPrimaryMetricName = (): string => {
+    return taskType === 'classification' ? 'F1 Score' : 'R² Score'
+  }
+
+  // Prepare data for bar chart
+  const successfulResults = results.all_results.filter(r => r.status === 'completed')
+  const maxMetricValue = Math.max(...successfulResults.map(r => Math.abs(getPrimaryMetric(r))))
+
+  const handleDownloadModel = (modelId: string) => {
+    const url = trainingService.getDownloadModelUrl(projectId, modelId)
+    window.open(url, '_blank')
+  }
+
+  const handleDownloadPipeline = () => {
+    const url = trainingService.getDownloadPipelineUrl(projectId)
+    window.open(url, '_blank')
+  }
 
   return (
     <div className="space-y-6">
-      {/* Success Banner */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-            <Trophy className="w-6 h-6 text-green-600" />
+      {/* Header with Downloads */}
+      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+              <Trophy className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-1">Training Complete!</h3>
+              <p className="text-gray-600">
+                {results.models_successful} of {results.models_trained} models trained successfully
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-green-900">Training Complete!</h3>
-            <p className="text-sm text-green-700">
-              Successfully trained {results.models_successful} of {results.models_trained} models
-            </p>
-          </div>
-          {onContinue && (
-            <Button onClick={onContinue} className="bg-green-600 hover:bg-green-700 gap-2">
-              Continue <ArrowRight className="w-4 h-4" />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDownloadModel(results.best_model?.model_id || '')}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Best Model
             </Button>
-          )}
+            <Button
+              size="sm"
+              onClick={handleDownloadPipeline}
+              className="bg-green-600 hover:bg-green-700 gap-2"
+            >
+              <Package className="w-4 h-4" />
+              Complete Pipeline
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Best Model Card */}
       {results.best_model && (
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border border-yellow-200 p-6">
+        <div className="bg-white rounded-xl border-2 border-yellow-300 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Award className="w-6 h-6 text-yellow-600" />
-            <h3 className="font-semibold text-gray-900">Best Model</h3>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-xl font-bold text-gray-900">{results.best_model.model_name}</h4>
-              <p className="text-sm text-gray-600">Based on {getMetricLabel(primaryMetric)}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-3xl font-bold text-yellow-600">
-                {results.best_model.metrics && formatMetric(
-                  results.best_model.metrics[primaryMetric],
-                  primaryMetric
-                )}
-              </span>
-              <p className="text-sm text-gray-500">{getMetricLabel(primaryMetric)}</p>
-            </div>
+            <Award className="w-6 h-6 text-yellow-500" />
+            <h4 className="text-lg font-semibold text-gray-900">Best Model</h4>
           </div>
           
-          {/* Best Model Metrics */}
-          {results.best_model.metrics && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              {Object.entries(results.best_model.metrics)
-                .filter(([key]) => !['cv_mean', 'cv_std'].includes(key))
-                .map(([metric, value]) => (
-                  <div key={metric} className="bg-white/50 rounded-lg p-3">
-                    <span className="text-xs text-gray-500">{getMetricLabel(metric)}</span>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {formatMetric(value, metric)}
-                    </p>
-                  </div>
-                ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Model</p>
+              <p className="font-semibold text-gray-900">{results.best_model.model_name}</p>
             </div>
-          )}
+            <div>
+              <p className="text-sm text-gray-500 mb-1">{getPrimaryMetricName()}</p>
+              <p className="text-2xl font-bold text-green-600">
+                {formatMetric(getPrimaryMetric(results.best_model), getPrimaryMetricName())}
+              </p>
+            </div>
+            <div className="flex items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDownloadModel(results.best_model?.model_id || '')}
+                className="w-full gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download Model
+              </Button>
+            </div>
+          </div>
+
+          {/* Best Model Metrics */}
+          <div className="mt-4 pt-4 border-t grid grid-cols-2 md:grid-cols-4 gap-3">
+            {results.best_model.metrics && Object.entries(results.best_model.metrics).map(([key, value]) => (
+              <div key={key} className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-1">{getMetricLabel(key)}</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {formatMetric(value as number, key)}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* All Models Results */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">All Model Results</h3>
+      {/* PART 12 & 13: Model Comparison Chart */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <BarChart3 className="w-5 h-5 text-blue-500" />
+          <h4 className="text-lg font-semibold text-gray-900">Model Performance Comparison</h4>
         </div>
-        <div className="divide-y divide-gray-100">
-          {results.all_results.map((result, index) => {
-            const isExpanded = expandedModels.includes(result.model_id)
-            const isBest = results.best_model?.model_id === result.model_id
+
+        {/* Bar Chart */}
+        <div className="space-y-3 mb-6">
+          {successfulResults.map((result, idx) => {
+            const metricValue = getPrimaryMetric(result)
+            const isNegative = metricValue < 0
+            const barWidth = maxMetricValue > 0 ? (Math.abs(metricValue) / maxMetricValue) * 100 : 0
+            const isBest = result.model_id === results.best_model?.model_id
 
             return (
-              <div key={result.model_id} className="">
-                <button
-                  onClick={() => toggleModel(result.model_id)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600">
-                      {index + 1}
+              <div key={result.model_id} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {result.model_name}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{result.model_name}</span>
-                      {isBest && (
-                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
-                          Best
-                        </span>
-                      )}
-                      {result.status === 'completed' ? (
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-red-500" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {result.status === 'completed' && result.metrics && (
-                      <span className="text-sm font-medium text-gray-700">
-                        {getMetricLabel(primaryMetric)}: {formatMetric(result.metrics[primaryMetric], primaryMetric)}
+                    {isBest && (
+                      <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
+                        Best
                       </span>
                     )}
-                    {result.status === 'failed' && (
-                      <span className="text-sm text-red-600">Failed</span>
-                    )}
-                    {isExpanded ? (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <span className={`text-sm font-semibold ${
+                    isNegative ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {formatMetric(metricValue, getPrimaryMetricName())}
+                  </span>
+                </div>
+                <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
+                  <div
+                    className={`h-full ${
+                      isBest ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                      isNegative ? 'bg-gradient-to-r from-red-400 to-red-500' :
+                      'bg-gradient-to-r from-blue-400 to-blue-500'
+                    } transition-all duration-500 flex items-center justify-end px-3`}
+                    style={{ width: `${Math.max(barWidth, 5)}%` }}
+                  >
+                    {barWidth > 15 && (
+                      <span className="text-xs font-medium text-white">
+                        {formatMetric(metricValue, getPrimaryMetricName())}
+                      </span>
                     )}
                   </div>
-                </button>
-
-                {isExpanded && (
-                  <div className="px-4 pb-4 bg-gray-50">
-                    {result.status === 'completed' && result.metrics ? (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {Object.entries(result.metrics).map(([metric, value]) => (
-                          <div key={metric} className="bg-white rounded-lg p-3 border border-gray-100">
-                            <span className="text-xs text-gray-500">{getMetricLabel(metric)}</span>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {formatMetric(value, metric)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="bg-red-50 rounded-lg p-4">
-                        <p className="text-sm text-red-700">Error: {result.error}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                </div>
               </div>
             )
           })}
         </div>
+
+        {/* Metrics Comparison Table */}
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Model
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                {successfulResults[0]?.metrics && Object.keys(successfulResults[0].metrics).slice(0, 4).map(metric => (
+                  <th key={metric} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {getMetricLabel(metric)}
+                  </th>
+                ))}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {results.all_results.map((result) => (
+                <tr key={result.model_id} className={result.model_id === results.best_model?.model_id ? 'bg-yellow-50' : ''}>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">{result.model_name}</span>
+                      {result.model_id === results.best_model?.model_id && (
+                        <Trophy className="w-4 h-4 text-yellow-500" />
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {result.status === 'completed' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Success
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs">
+                        <XCircle className="w-3 h-3" />
+                        Failed
+                      </span>
+                    )}
+                  </td>
+                  {result.metrics && Object.entries(result.metrics).slice(0, 4).map(([key, value]) => (
+                    <td key={key} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {formatMetric(value as number, key)}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {result.status === 'completed' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownloadModel(result.model_id)}
+                        className="gap-2"
+                      >
+                        <Download className="w-3 h-3" />
+                        Download
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Comparison Chart Placeholder */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <BarChart2 className="w-5 h-5 text-blue-500" />
-          <h3 className="font-semibold text-gray-900">Model Comparison</h3>
-        </div>
-        <div className="space-y-3">
-          {results.all_results
-            .filter(r => r.status === 'completed' && r.metrics)
-            .map(result => {
-              const score = result.metrics?.[primaryMetric] || 0
-              const maxScore = taskType === 'classification' ? 1 : 1
-              const percentage = (score / maxScore) * 100
-
-              return (
-                <div key={result.model_id} className="flex items-center gap-4">
-                  <span className="w-40 text-sm text-gray-700 truncate">{result.model_name}</span>
-                  <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${
-                        results.best_model?.model_id === result.model_id
-                          ? 'bg-yellow-500'
-                          : 'bg-blue-500'
-                      }`}
-                      style={{ width: `${Math.min(percentage, 100)}%` }}
-                    />
-                  </div>
-                  <span className="w-20 text-sm font-medium text-gray-900 text-right">
-                    {formatMetric(score, primaryMetric)}
-                  </span>
-                </div>
-              )
-            })}
-        </div>
+      {/* Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-900">
+          💡 <strong>Next Steps:</strong> Download the complete pipeline to use this model in production, 
+          or use the prediction feature below to test it with new data.
+        </p>
       </div>
     </div>
   )
