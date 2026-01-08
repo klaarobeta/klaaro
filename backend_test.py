@@ -559,49 +559,78 @@ def test_dataset_deletion():
         os.unlink(csv_file)
 
 def main():
-    """Run all backend tests"""
-    print("🚀 Starting Backend API Tests for Dataset Upload Feature")
-    print("=" * 60)
+    """Run all backend tests for Data Management Features (Parts 2-7)"""
+    print("🚀 Starting Backend API Tests for AI/ML Platform Data Management Features")
+    print("=" * 80)
     
     results = {}
     
-    # Test 1: Health endpoint
-    results['health'] = test_health_endpoint()
+    # Test health endpoint first
+    try:
+        response = requests.get(f"{API_BASE}/health", timeout=10)
+        if response.status_code == 200:
+            print("✅ Backend health check passed")
+            results['health'] = True
+        else:
+            print("❌ Backend health check failed")
+            results['health'] = False
+    except Exception as e:
+        print(f"❌ Backend health check error: {str(e)}")
+        results['health'] = False
     
-    # Test 2: Single CSV upload
-    results['csv_upload'], csv_data = test_single_csv_upload()
+    # Part 2: Dataset Storage
+    results['dataset_storage'], csv_id = test_dataset_storage()
     
-    # Test 3: Single JSON upload
-    results['json_upload'], json_data = test_single_json_upload()
+    # Part 3: Dataset Listing
+    results['dataset_listing'], listing_details = test_dataset_listing()
     
-    # Test 4: Multiple file upload
-    results['multiple_upload'], multiple_data = test_multiple_file_upload()
+    # Part 4: CSV Preview
+    results['csv_preview'] = test_csv_preview()
     
-    # Test 5: Invalid file rejection
-    results['invalid_rejection'] = test_invalid_file_rejection()
+    # Part 5: Image Preview
+    results['image_preview'] = test_image_preview()
     
-    # Test 6: Verify uploaded files
-    results['file_verification'] = verify_uploaded_files()
+    # Part 6: JSON Preview
+    results['json_preview'] = test_json_preview()
+    
+    # Part 7: Dataset Statistics
+    results['dataset_statistics'], stats_details = test_dataset_statistics()
+    
+    # Delete functionality test
+    results['dataset_deletion'] = test_dataset_deletion()
     
     # Summary
-    print("\n" + "=" * 60)
-    print("📊 TEST SUMMARY")
-    print("=" * 60)
+    print("\n" + "=" * 80)
+    print("📊 TEST SUMMARY - AI/ML Platform Data Management Features")
+    print("=" * 80)
     
     passed = sum(1 for result in results.values() if result)
     total = len(results)
     
+    # Detailed results
+    test_descriptions = {
+        'health': 'Backend Health Check',
+        'dataset_storage': 'Part 2: Dataset Storage (MongoDB)',
+        'dataset_listing': 'Part 3: Dataset Listing & Filtering',
+        'csv_preview': 'Part 4: CSV Preview',
+        'image_preview': 'Part 5: Image Preview',
+        'json_preview': 'Part 6: JSON Preview',
+        'dataset_statistics': 'Part 7: Dataset Statistics',
+        'dataset_deletion': 'Dataset Deletion'
+    }
+    
     for test_name, result in results.items():
         status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{test_name.replace('_', ' ').title()}: {status}")
+        description = test_descriptions.get(test_name, test_name.replace('_', ' ').title())
+        print(f"{description}: {status}")
     
     print(f"\nOverall: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 All backend tests passed!")
+        print("🎉 All Data Management features are working correctly!")
         return True
     else:
-        print("⚠️  Some backend tests failed!")
+        print("⚠️  Some Data Management features have issues!")
         return False
 
 if __name__ == "__main__":
