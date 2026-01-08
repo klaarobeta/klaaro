@@ -5,16 +5,18 @@ import CSVPreview from '@/components/data/preview/CSVPreview'
 import JSONPreview from '@/components/data/preview/JSONPreview'
 import ImagePreview from '@/components/data/preview/ImagePreview'
 import DatasetStats from '@/components/data/DatasetStats'
+import DataExplorer from '@/components/data/DataExplorer'
 import { Dataset } from '@/types/dataset'
-import { Database, X, Upload, List, Eye, BarChart2 } from 'lucide-react'
+import { Database, X, Upload, List, Eye, BarChart2, Wrench } from 'lucide-react'
 
-type ViewMode = 'upload' | 'list'
+type ViewMode = 'upload' | 'list' | 'explore'
 type ModalType = 'preview' | 'stats' | null
 
 export default function DataUploadPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('upload')
   const [modalType, setModalType] = useState<ModalType>(null)
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null)
+  const [exploringDatasetId, setExploringDatasetId] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const handleUploadComplete = () => {
@@ -29,6 +31,13 @@ export default function DataUploadPage() {
   const handleStats = (dataset: Dataset) => {
     setSelectedDataset(dataset)
     setModalType('stats')
+  }
+
+  const handleExplore = (dataset: Dataset) => {
+    if (dataset.category === 'csv') {
+      setExploringDatasetId(dataset.id)
+      setViewMode('explore')
+    }
   }
 
   const closeModal = () => {
@@ -71,53 +80,70 @@ export default function DataUploadPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Data Management</h2>
-          <p className="text-gray-500 mt-1">Upload, preview, and analyze your datasets</p>
-        </div>
+        {viewMode === 'explore' && exploringDatasetId ? (
+          <DataExplorer
+            datasetId={exploringDatasetId}
+            onBack={() => {
+              setViewMode('list')
+              setExploringDatasetId(null)
+            }}
+            onDatasetChange={(newId) => {
+              setExploringDatasetId(newId)
+              setRefreshTrigger(prev => prev + 1)
+            }}
+          />
+        ) : (
+          <>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Data Management</h2>
+              <p className="text-gray-500 mt-1">Upload, preview, and analyze your datasets</p>
+            </div>
 
-        {/* View Toggle */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setViewMode('upload')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
-              ${viewMode === 'upload' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-white text-gray-600 border hover:bg-gray-50'}`}
-          >
-            <Upload className="w-4 h-4" />
-            Upload
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
-              ${viewMode === 'list' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-white text-gray-600 border hover:bg-gray-50'}`}
-          >
-            <List className="w-4 h-4" />
-            Datasets
-          </button>
-        </div>
+            {/* View Toggle */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => setViewMode('upload')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
+                  ${viewMode === 'upload' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-white text-gray-600 border hover:bg-gray-50'}`}
+              >
+                <Upload className="w-4 h-4" />
+                Upload
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
+                  ${viewMode === 'list' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-white text-gray-600 border hover:bg-gray-50'}`}
+              >
+                <List className="w-4 h-4" />
+                Datasets
+              </button>
+            </div>
 
-        {/* Content */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          {viewMode === 'upload' ? (
-            <>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Upload Dataset</h3>
-              <FileUploader onUploadComplete={handleUploadComplete} />
-            </>
-          ) : (
-            <>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Datasets</h3>
-              <DatasetList 
-                onPreview={handlePreview} 
-                onStats={handleStats}
-                refreshTrigger={refreshTrigger}
-              />
-            </>
-          )}
-        </div>
+            {/* Content */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              {viewMode === 'upload' ? (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Upload Dataset</h3>
+                  <FileUploader onUploadComplete={handleUploadComplete} />
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Datasets</h3>
+                  <DatasetList 
+                    onPreview={handlePreview} 
+                    onStats={handleStats}
+                    onExplore={handleExplore}
+                    refreshTrigger={refreshTrigger}
+                  />
+                </>
+              )}
+            </div>
+          </>
+        )}
       </main>
 
       {/* Modal */}
