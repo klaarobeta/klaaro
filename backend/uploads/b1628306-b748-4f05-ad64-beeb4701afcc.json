@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "name": "Alice",
+      "age": 28,
+      "city": "Boston"
+    },
+    {
+      "name": "Charlie",
+      "age": 32,
+      "city": "Seattle"
+    }
+  ]
+}
