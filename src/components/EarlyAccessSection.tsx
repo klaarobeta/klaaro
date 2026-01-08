@@ -1,17 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Unlock, Terminal, Code2 } from "lucide-react";
-
-const VALID_CODE = "lolamlol";
+import { useAuth } from "@/contexts/AuthContext";
+import { KeyRound, Unlock, Terminal, Code2, ArrowRight, Loader2 } from "lucide-react";
 
 const EarlyAccessSection = () => {
   const [code, setCode] = useState("");
-  const [isVerified, setIsVerified] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const { toast } = useToast();
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
-  const handleCodeSubmit = (e: React.FormEvent) => {
+  // If already authenticated, show option to go to dashboard
+  useEffect(() => {
+    // This effect is just for rendering purposes
+  }, [isAuthenticated]);
+
+  const handleCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!code.trim()) {
@@ -23,19 +30,35 @@ const EarlyAccessSection = () => {
       return;
     }
 
-    if (code.toLowerCase() === VALID_CODE) {
-      setIsVerified(true);
+    setIsVerifying(true);
+    
+    // Simulate verification delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const success = login(code);
+    
+    if (success) {
       toast({
         title: "Access Granted!",
-        description: "Please wait for some days. We'll be in touch soon!",
+        description: "Welcome to Klaaro. Redirecting to dashboard...",
       });
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
     } else {
       toast({
         title: "Wrong Code",
         description: "The code you entered is invalid. Please try again.",
         variant: "destructive",
       });
+      setIsVerifying(false);
     }
+  };
+
+  const handleGoToDashboard = () => {
+    navigate("/dashboard");
   };
 
   return (
