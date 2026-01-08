@@ -1,0 +1,9 @@
+name,age,department,salary,city,experience
+John Doe,30,Engineering,75000,New York,5
+Jane Smith,33.166666666666664,Marketing,65000,Los Angeles,3
+Bob Johnson,35,Engineering,69714.28571428571,Chicago,7
+Alice Brown,28,Sales,70000,,2
+Charlie Wilson,32,HR,60000,Seattle,
+Mike Davis,45,Engineering,95000,Boston,10
+Sarah Lee,29,,55000,Portland,4
+Tom Wilson,33.166666666666664,Marketing,68000,Denver,6

@@ -1,0 +1,9 @@
+name,age,department,salary,city,experience
+John Doe,0.117647,Engineering,0.500000,New York,5
+Jane Smith,0.303922,Marketing,0.250000,Los Angeles,3
+Bob Johnson,0.411765,Engineering,0.367857,Chicago,7
+Alice Brown,0.000000,Sales,0.375000,,2
+Charlie Wilson,0.235294,HR,0.125000,Seattle,
+Mike Davis,1.000000,Engineering,1.000000,Boston,10
+Sarah Lee,0.058824,,0.000000,Portland,4
+Tom Wilson,0.303922,Marketing,0.325000,Denver,6

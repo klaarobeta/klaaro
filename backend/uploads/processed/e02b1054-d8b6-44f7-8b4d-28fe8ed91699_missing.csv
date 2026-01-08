@@ -1,0 +1,6 @@
+name,age,department,salary,city,experience
+John Doe,30,Engineering,75000,New York,5
+Alice Brown,28,Sales,70000,,2
+Charlie Wilson,32,HR,60000,Seattle,
+Mike Davis,45,Engineering,95000,Boston,10
+Sarah Lee,29,,55000,Portland,4

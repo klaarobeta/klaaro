@@ -1,0 +1,9 @@
+name,age,department,salary,city,experience
+John Doe,-0.635189,1,75000,New York,5
+Jane Smith,0.000000,3,65000,Los Angeles,3
+Bob Johnson,0.367741,1,69714.28571428571,Chicago,7
+Alice Brown,-1.036360,4,70000,,2
+Charlie Wilson,-0.234017,2,60000,Seattle,
+Mike Davis,2.373600,1,95000,Boston,10
+Sarah Lee,-0.835775,0,55000,Portland,4
+Tom Wilson,0.000000,3,68000,Denver,6

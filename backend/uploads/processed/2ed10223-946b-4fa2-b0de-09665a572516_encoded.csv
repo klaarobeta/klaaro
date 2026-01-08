@@ -1,0 +1,9 @@
+name,age,salary,city,experience,department_,department_Engineering,department_HR,department_Marketing,department_Sales
+John Doe,-0.635189,75000,New York,5,0,1,0,0,0
+Jane Smith,0.000000,65000,Los Angeles,3,0,0,0,1,0
+Bob Johnson,0.367741,69714.28571428571,Chicago,7,0,1,0,0,0
+Alice Brown,-1.036360,70000,,2,0,0,0,0,1
+Charlie Wilson,-0.234017,60000,Seattle,,0,0,1,0,0
+Mike Davis,2.373600,95000,Boston,10,0,1,0,0,0
+Sarah Lee,-0.835775,55000,Portland,4,1,0,0,0,0
+Tom Wilson,0.000000,68000,Denver,6,0,0,0,1,0
