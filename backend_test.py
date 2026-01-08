@@ -1162,7 +1162,7 @@ def test_data_export():
         return False, {}
 
 def main():
-    """Run all backend tests for Data Management Features (Parts 2-7)"""
+    """Run all backend tests for AI/ML Platform Data Management Features (Parts 2-15)"""
     print("🚀 Starting Backend API Tests for AI/ML Platform Data Management Features")
     print("=" * 80)
     
@@ -1202,6 +1202,27 @@ def main():
     # Delete functionality test
     results['dataset_deletion'] = test_dataset_deletion()
     
+    # Part 9: Data Exploration
+    results['data_exploration'], exploration_details = test_data_exploration()
+    
+    # Part 10: Chart Data
+    results['chart_data'], chart_details = test_chart_data()
+    
+    # Part 11: Missing Values Preprocessing
+    results['missing_values'], missing_details = test_missing_values_preprocessing()
+    
+    # Part 12: Normalization Preprocessing
+    results['normalization'], norm_details = test_normalization_preprocessing()
+    
+    # Part 13: Encoding Preprocessing
+    results['encoding'], encoding_details = test_encoding_preprocessing()
+    
+    # Part 14: Data Split
+    results['data_split'] = test_data_split()
+    
+    # Part 15: Data Export
+    results['data_export'], export_details = test_data_export()
+    
     # Summary
     print("\n" + "=" * 80)
     print("📊 TEST SUMMARY - AI/ML Platform Data Management Features")
@@ -1219,7 +1240,14 @@ def main():
         'image_preview': 'Part 5: Image Preview',
         'json_preview': 'Part 6: JSON Preview',
         'dataset_statistics': 'Part 7: Dataset Statistics',
-        'dataset_deletion': 'Dataset Deletion'
+        'dataset_deletion': 'Dataset Deletion',
+        'data_exploration': 'Part 9: Data Exploration (Filter/Search/Unique)',
+        'chart_data': 'Part 10: Chart Data (Histogram/Bar/Scatter)',
+        'missing_values': 'Part 11: Missing Values Preprocessing',
+        'normalization': 'Part 12: Data Normalization',
+        'encoding': 'Part 13: Categorical Encoding',
+        'data_split': 'Part 14: Train/Val/Test Split',
+        'data_export': 'Part 15: Data Export (CSV/JSON)'
     }
     
     for test_name, result in results.items():
@@ -1230,10 +1258,10 @@ def main():
     print(f"\nOverall: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 All Data Management features are working correctly!")
+        print("🎉 All Data Management and Preprocessing features are working correctly!")
         return True
     else:
-        print("⚠️  Some Data Management features have issues!")
+        print("⚠️  Some Data Management and Preprocessing features have issues!")
         return False
 
 if __name__ == "__main__":
