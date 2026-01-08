@@ -210,5 +210,5 @@ export const trainingService = {
 
   getDownloadPredictionsUrl(projectId: string): string {
     return `${BACKEND_URL}/api/training/${projectId}/download-predictions`
-  },
+  }
 }
