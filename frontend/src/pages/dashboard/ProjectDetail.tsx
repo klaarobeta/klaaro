@@ -224,8 +224,39 @@ export default function ProjectDetail() {
     }
   }
 
-  const handleContinueToTraining = () => {
-    toast({ title: 'Coming soon', description: 'Model training will be available in the next update' })
+  const handleContinueToTraining = async () => {
+    // Auto-select models when continuing to training
+    setSelectingModels(true)
+    try {
+      const selection = await trainingService.selectModels(projectId!)
+      setModelSelection(selection)
+      toast({ title: 'Models selected', description: `${selection.recommended_models.length} models recommended for ${selection.task_type}` })
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    } finally {
+      setSelectingModels(false)
+    }
+  }
+
+  const handleUpdateModelSelection = async (models: ModelSelection[]) => {
+    try {
+      await trainingService.updateModelSelection(projectId!, models)
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    }
+  }
+
+  const handleStartTraining = async () => {
+    setStartingTraining(true)
+    try {
+      await trainingService.startTraining(projectId!)
+      toast({ title: 'Training started', description: 'Training your models in the background...' })
+      await fetchProject()
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    } finally {
+      setStartingTraining(false)
+    }
   }
 
   const formatDate = (dateStr: string) => {
