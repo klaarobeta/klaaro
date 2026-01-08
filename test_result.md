@@ -131,6 +131,66 @@ backend:
         agent: "testing"
         comment: "✅ GET /api/datasets/{id}/export working correctly. Supports both CSV and JSON export formats with proper content types and headers. Tested both formats successfully."
 
+  - task: "Part 7: Preprocessing Configuration UI - Get Config API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/preprocessing_pipeline.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ GET /api/preprocessing/{project_id}/config working correctly. Auto-generates preprocessing config with columns array (19 columns), split settings, and proper role assignments (target/feature). Requires project analysis and target column selection."
+
+  - task: "Part 7: Preprocessing Configuration UI - Auto Preprocessing API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/preprocessing_pipeline.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ POST /api/preprocessing/auto working correctly. Successfully triggers background preprocessing task with configurable test_size and validation_size. Tested with housing dataset (8 train, 2 test samples)."
+
+  - task: "Part 7: Preprocessing Configuration UI - Custom Preprocessing API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/preprocessing_pipeline.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ POST /api/preprocessing/custom working correctly. Applies custom preprocessing configuration with modified split ratios. Successfully created validation split (5 train, 3 test, 2 validation samples)."
+
+  - task: "Part 7: Preprocessing Configuration UI - Results API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/preprocessing_pipeline.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ GET /api/preprocessing/{project_id}/results working correctly. Returns comprehensive stats (train_samples, test_samples, val_samples), feature_names (18 features), and preprocessing metadata."
+
+  - task: "Part 7: Preprocessing Configuration UI - Preview API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/preprocessing_pipeline.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ GET /api/preprocessing/{project_id}/preview working correctly. Returns sample preprocessed data preview with feature_names, shapes (X_train: [8,18], X_test: [2,18]), and data samples."
+
 frontend:
   - task: "DataFilter Component"
     implemented: true
