@@ -1,0 +1,6 @@
+name,age,salary,city
+John,30,50000,NYC
+Jane,25,60000,LA
+Bob,35,55000,Chicago
+Alice,28,65000,Boston
+Mike,null,48000,Seattle
