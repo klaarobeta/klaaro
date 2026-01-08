@@ -15,14 +15,16 @@ import {
   Table2,
   RefreshCw,
   ArrowRight,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { projectService, Project } from '@/services/projectService'
 import { analysisService, AnalysisResults } from '@/services/analysisService'
+import { preprocessingService, PreprocessingConfig, PreprocessingResults } from '@/services/preprocessingService'
 import AnalysisReport from '@/components/analysis/AnalysisReport'
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001'
+import PreprocessingConfigEditor from '@/components/preprocessing/PreprocessingConfigEditor'
+import PreprocessingResultsView from '@/components/preprocessing/PreprocessingResultsView'
 
 interface Dataset {
   id: string
@@ -39,11 +41,15 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   analyzing: { label: 'Analyzing...', color: 'bg-yellow-100 text-yellow-700', icon: Loader2, spin: true },
   analyzed: { label: 'Analyzed', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
   analysis_failed: { label: 'Analysis Failed', color: 'bg-red-100 text-red-700', icon: AlertCircle },
-  preprocessing: { label: 'Preprocessing', color: 'bg-purple-100 text-purple-700', icon: Settings },
+  preprocessing: { label: 'Preprocessing...', color: 'bg-purple-100 text-purple-700', icon: Loader2, spin: true },
+  preprocessed: { label: 'Preprocessed', color: 'bg-purple-100 text-purple-700', icon: CheckCircle2 },
+  preprocessing_failed: { label: 'Preprocessing Failed', color: 'bg-red-100 text-red-700', icon: AlertCircle },
   training: { label: 'Training', color: 'bg-orange-100 text-orange-700', icon: Brain },
   completed: { label: 'Completed', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
   failed: { label: 'Failed', color: 'bg-red-100 text-red-700', icon: AlertCircle },
 }
+
+type ViewMode = 'overview' | 'preprocessing'
 
 export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -57,6 +63,12 @@ export default function ProjectDetail() {
   const [startingAnalysis, setStartingAnalysis] = useState(false)
   const [selectedTarget, setSelectedTarget] = useState<string | undefined>(undefined)
   const [settingTarget, setSettingTarget] = useState(false)
+  
+  // Preprocessing state
+  const [viewMode, setViewMode] = useState<ViewMode>('overview')
+  const [preprocessingConfig, setPreprocessingConfig] = useState<PreprocessingConfig | null>(null)
+  const [startingPreprocessing, setStartingPreprocessing] = useState(false)
+  const [showConfigEditor, setShowConfigEditor] = useState(false)
 
   const fetchProject = useCallback(async () => {
     try {
@@ -67,6 +79,16 @@ export default function ProjectDetail() {
       if (proj.dataset_id) {
         const ds = await projectService.getDataset(projectId!)
         setDataset(ds)
+      }
+      
+      // Load preprocessing config if analyzed
+      if (proj.target_column && proj.analysis_results && !proj.preprocessing_results) {
+        try {
+          const configResult = await preprocessingService.getConfig(projectId!)
+          setPreprocessingConfig(configResult.config)
+        } catch (e) {
+          // Config not available yet
+        }
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' })
@@ -81,9 +103,9 @@ export default function ProjectDetail() {
     }
   }, [projectId, fetchProject])
 
-  // Poll for analysis completion
+  // Poll for analysis/preprocessing completion
   useEffect(() => {
-    if (project?.status === 'analyzing') {
+    if (project?.status === 'analyzing' || project?.status === 'preprocessing') {
       const interval = setInterval(async () => {
         await fetchProject()
       }, 2000)
@@ -137,6 +159,39 @@ export default function ProjectDetail() {
     }
   }
 
+  const handleStartPreprocessing = async () => {
+    setStartingPreprocessing(true)
+    try {
+      await preprocessingService.startAuto(projectId!, 0.2, 0)
+      toast({ title: 'Preprocessing started', description: 'Preparing your data for training...' })
+      await fetchProject()
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    } finally {
+      setStartingPreprocessing(false)
+    }
+  }
+
+  const handleCustomPreprocessing = async () => {
+    if (!preprocessingConfig) return
+    
+    setStartingPreprocessing(true)
+    try {
+      await preprocessingService.startCustom(projectId!, preprocessingConfig)
+      toast({ title: 'Preprocessing started', description: 'Applying custom configuration...' })
+      setShowConfigEditor(false)
+      await fetchProject()
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    } finally {
+      setStartingPreprocessing(false)
+    }
+  }
+
+  const handleContinueToTraining = () => {
+    toast({ title: 'Coming soon', description: 'Model training will be available in the next update' })
+  }
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
@@ -176,6 +231,7 @@ export default function ProjectDetail() {
   const status = statusConfig[project.status] || statusConfig.created
   const StatusIcon = status.icon
   const hasAnalysis = project.analysis_results && !project.analysis_results.error
+  const hasPreprocessing = project.preprocessing_results && !project.preprocessing_results.error
 
   return (
     <div className="p-8 space-y-6">
@@ -218,7 +274,6 @@ export default function ProjectDetail() {
             </div>
             <h3 className="font-semibold text-gray-900">Dataset</h3>
           </div>
-          
           {dataset ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -230,12 +285,7 @@ export default function ProjectDetail() {
               </div>
             </div>
           ) : (
-            <div className="text-sm text-gray-500">
-              <p>No dataset linked</p>
-              <Link to="/dashboard/datasets" className="text-blue-500 hover:underline">
-                Upload a dataset
-              </Link>
-            </div>
+            <p className="text-sm text-gray-500">No dataset linked</p>
           )}
         </div>
 
@@ -247,20 +297,12 @@ export default function ProjectDetail() {
             </div>
             <h3 className="font-semibold text-gray-900">Task Type</h3>
           </div>
-          
           {project.task_type ? (
-            <div className="text-sm">
-              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-md capitalize">
-                {project.task_type}
-              </span>
-              {project.analysis_results?.task_confidence && (
-                <span className="text-gray-500 ml-2">
-                  {Math.round(project.analysis_results.task_confidence * 100)}% confident
-                </span>
-              )}
-            </div>
+            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-md capitalize text-sm">
+              {project.task_type}
+            </span>
           ) : (
-            <p className="text-sm text-gray-500">Will be auto-detected after analysis</p>
+            <p className="text-sm text-gray-500">Auto-detect after analysis</p>
           )}
         </div>
 
@@ -272,13 +314,10 @@ export default function ProjectDetail() {
             </div>
             <h3 className="font-semibold text-gray-900">Target</h3>
           </div>
-          
           {project.target_column ? (
-            <div className="text-sm">
-              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-md">
-                {project.target_column}
-              </span>
-            </div>
+            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-sm">
+              {project.target_column}
+            </span>
           ) : (
             <p className="text-sm text-gray-500">Select after analysis</p>
           )}
@@ -292,17 +331,16 @@ export default function ProjectDetail() {
             </div>
             <h3 className="font-semibold text-gray-900">Timeline</h3>
           </div>
-          
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Created</span>
-              <span className="text-gray-900">{formatDate(project.created_at)}</span>
-            </div>
+          <div className="text-sm">
+            <span className="text-gray-500">Created: </span>
+            <span className="text-gray-900">{formatDate(project.created_at)}</span>
           </div>
         </div>
       </div>
 
-      {/* Action Section - Start Analysis */}
+      {/* Action Sections based on status */}
+      
+      {/* Start Analysis CTA */}
       {project.status === 'dataset_linked' && (
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
           <div className="flex items-center justify-between">
@@ -317,11 +355,8 @@ export default function ProjectDetail() {
               disabled={startingAnalysis}
               className="bg-blue-600 hover:bg-blue-700 gap-2"
             >
-              {startingAnalysis ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Starting...</>
-              ) : (
-                <><Play className="w-4 h-4" /> Start Analysis</>
-              )}
+              {startingAnalysis ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              Start Analysis
             </Button>
           </div>
         </div>
@@ -334,36 +369,27 @@ export default function ProjectDetail() {
             <Loader2 className="w-8 h-8 animate-spin text-yellow-600" />
             <div>
               <h3 className="font-semibold text-gray-900 mb-1">Analysis in Progress</h3>
-              <p className="text-sm text-gray-600">
-                Analyzing your dataset... This usually takes a few seconds.
-              </p>
+              <p className="text-sm text-gray-600">Analyzing your dataset...</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Analysis Failed */}
-      {project.status === 'analysis_failed' && (
-        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl border border-red-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <AlertCircle className="w-8 h-8 text-red-600" />
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Analysis Failed</h3>
-                <p className="text-sm text-gray-600">
-                  {project.analysis_results?.error || 'An error occurred during analysis'}
-                </p>
-              </div>
+      {/* Preprocessing in Progress */}
+      {project.status === 'preprocessing' && (
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6">
+          <div className="flex items-center gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-1">Preprocessing in Progress</h3>
+              <p className="text-sm text-gray-600">Cleaning and transforming your data...</p>
             </div>
-            <Button onClick={handleStartAnalysis} variant="outline" className="gap-2">
-              <RefreshCw className="w-4 h-4" /> Retry
-            </Button>
           </div>
         </div>
       )}
 
       {/* Analysis Results */}
-      {hasAnalysis && (
+      {hasAnalysis && !hasPreprocessing && (
         <>
           <AnalysisReport
             analysis={project.analysis_results as AnalysisResults}
@@ -371,23 +397,81 @@ export default function ProjectDetail() {
             selectedTarget={selectedTarget}
           />
 
-          {/* Next Step CTA */}
+          {/* Preprocessing Section */}
           {project.target_column && (
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Ready for Preprocessing</h3>
-                  <p className="text-sm text-gray-600">
-                    Target column selected. Proceed to configure preprocessing and start training.
-                  </p>
+            <>
+              {!showConfigEditor ? (
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Ready for Preprocessing</h3>
+                      <p className="text-sm text-gray-600">
+                        Target column selected. Preprocess your data to prepare for model training.
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={() => setShowConfigEditor(true)}>
+                        <Settings className="w-4 h-4 mr-2" />
+                        Customize
+                      </Button>
+                      <Button 
+                        onClick={handleStartPreprocessing}
+                        disabled={startingPreprocessing}
+                        className="bg-purple-600 hover:bg-purple-700 gap-2"
+                      >
+                        {startingPreprocessing ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                        Auto Preprocess
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <Button className="bg-green-600 hover:bg-green-700 gap-2">
-                  Continue to Preprocessing <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Preprocessing Configuration</h3>
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={() => setShowConfigEditor(false)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleCustomPreprocessing}
+                        disabled={startingPreprocessing || !preprocessingConfig}
+                        className="bg-purple-600 hover:bg-purple-700 gap-2"
+                      >
+                        {startingPreprocessing ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                        Apply & Run
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {preprocessingConfig && (
+                    <PreprocessingConfigEditor
+                      config={preprocessingConfig}
+                      onChange={setPreprocessingConfig}
+                      analysisColumns={project.analysis_results?.column_analysis}
+                    />
+                  )}
+                </div>
+              )}
+            </>
           )}
         </>
+      )}
+
+      {/* Preprocessing Results */}
+      {hasPreprocessing && (
+        <PreprocessingResultsView
+          results={project.preprocessing_results as PreprocessingResults}
+          onContinue={handleContinueToTraining}
+        />
       )}
 
       {/* Workflow Progress */}
@@ -398,7 +482,7 @@ export default function ProjectDetail() {
           {[
             { step: 1, label: 'Dataset', status: project.dataset_id ? 'completed' : 'pending' },
             { step: 2, label: 'Analysis', status: hasAnalysis ? 'completed' : project.status === 'analyzing' ? 'active' : 'pending' },
-            { step: 3, label: 'Preprocessing', status: project.preprocessing_config ? 'completed' : project.status === 'preprocessing' ? 'active' : 'pending' },
+            { step: 3, label: 'Preprocessing', status: hasPreprocessing ? 'completed' : project.status === 'preprocessing' ? 'active' : 'pending' },
             { step: 4, label: 'Training', status: project.model_id ? 'completed' : project.status === 'training' ? 'active' : 'pending' },
             { step: 5, label: 'Complete', status: project.status === 'completed' ? 'completed' : 'pending' },
           ].map((item, index, arr) => (
