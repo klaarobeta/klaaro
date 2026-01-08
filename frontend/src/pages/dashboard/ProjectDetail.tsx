@@ -140,15 +140,40 @@ export default function ProjectDetail() {
     }
   }, [projectId, fetchProject])
 
-  // Poll for analysis/preprocessing/training completion
+  // Poll for analysis/preprocessing/training completion with milestone notifications
   useEffect(() => {
     if (project?.status === 'analyzing' || project?.status === 'preprocessing' || project?.status === 'training') {
       const interval = setInterval(async () => {
+        const prevStatus = project?.status
         await fetchProject()
+        
+        // Show milestone notifications
+        const newProject = await projectService.get(projectId!)
+        if (prevStatus !== newProject.status) {
+          if (newProject.status === 'analyzed') {
+            toast({ 
+              title: '✅ Analysis Complete!', 
+              description: `Task type: ${newProject.task_type}. Ready for preprocessing.`,
+              duration: 5000
+            })
+          } else if (newProject.status === 'preprocessed') {
+            toast({ 
+              title: '✅ Preprocessing Complete!', 
+              description: 'Data is ready for model training.',
+              duration: 5000
+            })
+          } else if (newProject.status === 'trained') {
+            toast({ 
+              title: '🎉 Training Complete!', 
+              description: `${newProject.training_results?.models_successful} models trained successfully!`,
+              duration: 6000
+            })
+          }
+        }
       }, 2000)
       return () => clearInterval(interval)
     }
-  }, [project?.status, fetchProject])
+  }, [project?.status, projectId, fetchProject, toast])
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this project?')) return
