@@ -42,11 +42,13 @@ def test_health_endpoint():
         return False
 
 def create_test_csv():
-    """Create a test CSV file"""
-    csv_content = """name,age,city
-John Doe,30,New York
-Jane Smith,25,Los Angeles
-Bob Johnson,35,Chicago"""
+    """Create a test CSV file with realistic employee data"""
+    csv_content = """name,age,department,salary,city
+John Doe,30,Engineering,75000,New York
+Jane Smith,25,Marketing,65000,Los Angeles
+Bob Johnson,35,Engineering,85000,Chicago
+Alice Brown,28,Sales,70000,Boston
+Charlie Wilson,32,HR,60000,Seattle"""
     
     temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
     temp_file.write(csv_content)
@@ -54,12 +56,36 @@ Bob Johnson,35,Chicago"""
     return temp_file.name
 
 def create_test_json():
-    """Create a test JSON file"""
+    """Create a test JSON file with realistic product data"""
     json_content = {
-        "users": [
-            {"name": "Alice", "age": 28, "city": "Boston"},
-            {"name": "Charlie", "age": 32, "city": "Seattle"}
-        ]
+        "products": [
+            {
+                "id": 1,
+                "name": "Laptop Pro",
+                "price": 1299.99,
+                "category": "Electronics",
+                "specs": {
+                    "cpu": "Intel i7",
+                    "ram": "16GB",
+                    "storage": "512GB SSD"
+                }
+            },
+            {
+                "id": 2,
+                "name": "Wireless Mouse",
+                "price": 29.99,
+                "category": "Accessories",
+                "specs": {
+                    "connectivity": "Bluetooth",
+                    "battery": "AA",
+                    "dpi": 1600
+                }
+            }
+        ],
+        "metadata": {
+            "total_count": 2,
+            "last_updated": "2024-01-08"
+        }
     }
     
     temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
@@ -67,10 +93,13 @@ def create_test_json():
     temp_file.close()
     return temp_file.name
 
-def create_invalid_file():
-    """Create an invalid file type (.exe)"""
-    temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.exe', delete=False)
-    temp_file.write("This is not a real executable")
+def create_test_image():
+    """Create a test PNG image"""
+    # Create a simple 400x300 colored image
+    img = Image.new('RGB', (400, 300), color='lightblue')
+    
+    temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+    img.save(temp_file.name, 'PNG')
     temp_file.close()
     return temp_file.name
 
