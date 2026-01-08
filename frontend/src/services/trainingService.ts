@@ -157,4 +157,58 @@ export const trainingService = {
     }
     return response.json()
   }
+
+  // PART 14: Download model
+  getDownloadModelUrl(projectId: string, modelId: string): string {
+    return `${BACKEND_URL}/api/training/${projectId}/download-model/${modelId}`
+  },
+
+  getDownloadPipelineUrl(projectId: string): string {
+    return `${BACKEND_URL}/api/training/${projectId}/download-pipeline`
+  },
+
+  // PART 15: Make predictions
+  async predict(projectId: string, data: Record<string, any>[]): Promise<{
+    predictions: any[]
+    feature_names: string[]
+    model_name: string
+    prediction_count: number
+    task_type: string
+  }> {
+    const response = await fetch(`${BACKEND_URL}/api/training/${projectId}/predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data })
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.detail || 'Failed to make predictions')
+    }
+    return response.json()
+  },
+
+  async predictFromFile(projectId: string, file: File): Promise<{
+    predictions: any[]
+    feature_names: string[]
+    model_name: string
+    prediction_count: number
+    download_url?: string
+  }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await fetch(`${BACKEND_URL}/api/training/${projectId}/predict-file`, {
+      method: 'POST',
+      body: formData
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.detail || 'Failed to predict from file')
+    }
+    return response.json()
+  },
+
+  getDownloadPredictionsUrl(projectId: string): string {
+    return `${BACKEND_URL}/api/training/${projectId}/download-predictions`
+  },
 }
