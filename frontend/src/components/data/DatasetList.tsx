@@ -26,7 +26,7 @@ const categoryColors: Record<string, string> = {
   tabular: 'text-orange-600 bg-orange-50',
 }
 
-export default function DatasetList({ onPreview, onStats, refreshTrigger }: Props) {
+export default function DatasetList({ onPreview, onStats, onExplore, refreshTrigger }: Props) {
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('')
