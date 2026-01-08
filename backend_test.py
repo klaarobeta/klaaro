@@ -614,7 +614,7 @@ def test_data_exploration():
         # Test 1: Filter data
         try:
             filter_data = [
-                {"column": "department", "operator": "eq", "value": "Engineering"}
+                {"column": "name", "operator": "contains", "value": "John"}
             ]
             response = requests.post(f"{API_BASE}/datasets/{csv_id}/filter", 
                                    json=filter_data, timeout=10)
@@ -638,7 +638,7 @@ def test_data_exploration():
         
         # Test 2: Search data
         try:
-            response = requests.get(f"{API_BASE}/datasets/{csv_id}/search?q=Engineering", timeout=10)
+            response = requests.get(f"{API_BASE}/datasets/{csv_id}/search?q=John", timeout=10)
             print(f"Search Status: {response.status_code}")
             
             if response.status_code == 200:
@@ -659,7 +659,7 @@ def test_data_exploration():
         
         # Test 3: Get unique values
         try:
-            response = requests.get(f"{API_BASE}/datasets/{csv_id}/unique/department", timeout=10)
+            response = requests.get(f"{API_BASE}/datasets/{csv_id}/unique/city", timeout=10)
             print(f"Unique Values Status: {response.status_code}")
             
             if response.status_code == 200:
