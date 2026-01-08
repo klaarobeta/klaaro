@@ -44,7 +44,9 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   preprocessing: { label: 'Preprocessing...', color: 'bg-purple-100 text-purple-700', icon: Loader2, spin: true },
   preprocessed: { label: 'Preprocessed', color: 'bg-purple-100 text-purple-700', icon: CheckCircle2 },
   preprocessing_failed: { label: 'Preprocessing Failed', color: 'bg-red-100 text-red-700', icon: AlertCircle },
-  training: { label: 'Training', color: 'bg-orange-100 text-orange-700', icon: Brain },
+  training: { label: 'Training...', color: 'bg-orange-100 text-orange-700', icon: Loader2, spin: true },
+  trained: { label: 'Trained', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
+  training_failed: { label: 'Training Failed', color: 'bg-red-100 text-red-700', icon: AlertCircle },
   completed: { label: 'Completed', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
   failed: { label: 'Failed', color: 'bg-red-100 text-red-700', icon: AlertCircle },
 }
