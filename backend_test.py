@@ -13,7 +13,7 @@ from PIL import Image
 import io
 
 # Use external URL for testing
-BACKEND_URL = "https://datawiz-ml.preview.emergentagent.com"
+BACKEND_URL = "https://train-genius-2.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 print(f"Testing backend at: {API_BASE}")
