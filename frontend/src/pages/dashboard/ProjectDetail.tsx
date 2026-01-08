@@ -76,6 +76,13 @@ export default function ProjectDetail() {
   const [startingPreprocessing, setStartingPreprocessing] = useState(false)
   const [showConfigEditor, setShowConfigEditor] = useState(false)
 
+  // Training state
+  const [modelSelection, setModelSelection] = useState<ModelSelectionResult | null>(null)
+  const [trainingProgress, setTrainingProgress] = useState<TrainingProgress | null>(null)
+  const [trainingResults, setTrainingResults] = useState<TrainingResults | null>(null)
+  const [selectingModels, setSelectingModels] = useState(false)
+  const [startingTraining, setStartingTraining] = useState(false)
+
   const fetchProject = useCallback(async () => {
     try {
       const proj = await projectService.get(projectId!)
