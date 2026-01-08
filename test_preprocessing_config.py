@@ -52,7 +52,7 @@ def test_preprocessing_configuration():
             "description": "Predict house prices based on features like bedrooms, bathrooms, and location",
             "data_source": "upload"
         }
-        response = requests.post(f"{API_BASE}/projects", json=project_data, timeout=10)
+        response = requests.post(f"{API_BASE}/projects/", json=project_data, timeout=10)
         print(f"Create Project Status: {response.status_code}")
         
         if response.status_code != 200:
