@@ -22,9 +22,13 @@ import { useToast } from '@/hooks/use-toast'
 import { projectService, Project } from '@/services/projectService'
 import { analysisService, AnalysisResults } from '@/services/analysisService'
 import { preprocessingService, PreprocessingConfig, PreprocessingResults } from '@/services/preprocessingService'
+import { trainingService, ModelSelectionResult, ModelSelection, TrainingProgress, TrainingResults } from '@/services/trainingService'
 import AnalysisReport from '@/components/analysis/AnalysisReport'
 import PreprocessingConfigEditor from '@/components/preprocessing/PreprocessingConfigEditor'
 import PreprocessingResultsView from '@/components/preprocessing/PreprocessingResultsView'
+import ModelSelectionView from '@/components/training/ModelSelectionView'
+import TrainingProgressView from '@/components/training/TrainingProgressView'
+import TrainingResultsView from '@/components/training/TrainingResultsView'
 
 interface Dataset {
   id: string
