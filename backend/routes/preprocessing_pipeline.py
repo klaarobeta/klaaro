@@ -398,7 +398,7 @@ async def run_preprocessing(project_id: str, config: PreprocessingConfig):
                 "X_train_shape": list(result["X_train"].shape) if result["X_train"] is not None else None,
                 "X_test_shape": list(result["X_test"].shape) if result["X_test"] is not None else None,
                 "X_val_shape": list(result["X_val"].shape) if result["X_val"] is not None else None,
-                "X_train_preview": result["X_train"].head(5).to_dict() if result["X_train"] is not None else None
+                "X_train_preview": {str(k): {str(kk): vv for kk, vv in v.items()} for k, v in result["X_train"].head(5).to_dict().items()} if result["X_train"] is not None else None
             }
         }
         
