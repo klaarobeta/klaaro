@@ -798,3 +798,234 @@ async def get_training_results(project_id: str):
         "task_type": project.get("task_type"),
         "results": project["training_results"]
     }
+
+
+# ==================== PART 14: MODEL EXPORT ====================
+
+@router.get("/{project_id}/download-model/{model_id}")
+async def download_model(project_id: str, model_id: str):
+    """Download a specific trained model as pickle file"""
+    
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if not project.get("training_results"):
+        raise HTTPException(status_code=404, detail="No training results available")
+    
+    # Find the model in results
+    model_result = None
+    for result in project["training_results"].get("all_results", []):
+        if result["model_id"] == model_id:
+            model_result = result
+            break
+    
+    if not model_result or model_result.get("status") != "completed":
+        raise HTTPException(status_code=404, detail="Model not found or training failed")
+    
+    model_path = model_result.get("model_path")
+    if not model_path or not os.path.exists(model_path):
+        raise HTTPException(status_code=404, detail="Model file not found")
+    
+    return FileResponse(
+        path=model_path,
+        media_type="application/octet-stream",
+        filename=f"{model_id}.pkl"
+    )
+
+@router.get("/{project_id}/download-pipeline")
+async def download_pipeline(project_id: str):
+    """Download complete preprocessing + best model pipeline"""
+    
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if not project.get("preprocessing_results") or not project.get("training_results"):
+        raise HTTPException(status_code=400, detail="Project must have preprocessing and training completed")
+    
+    # Load preprocessing data
+    processed_path = project["preprocessing_results"]["processed_path"]
+    with open(processed_path, 'rb') as f:
+        preprocessing_data = pickle.load(f)
+    
+    # Load best model
+    best_model_result = project["training_results"].get("best_model")
+    if not best_model_result:
+        raise HTTPException(status_code=404, detail="No best model found")
+    
+    model_path = best_model_result.get("model_path")
+    if not model_path or not os.path.exists(model_path):
+        raise HTTPException(status_code=404, detail="Best model file not found")
+    
+    with open(model_path, 'rb') as f:
+        model = pickle.load(f)
+    
+    # Create complete pipeline
+    pipeline = {
+        "project_name": project.get("name"),
+        "project_id": project_id,
+        "task_type": project.get("task_type"),
+        "target_column": project.get("target_column"),
+        "feature_names": preprocessing_data["feature_names"],
+        "transformers": preprocessing_data["transformers"],
+        "model": model,
+        "model_name": best_model_result["model_name"],
+        "model_metrics": best_model_result.get("metrics", {}),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Save pipeline temporarily
+    pipeline_path = os.path.join(MODELS_DIR, f"{project_id}_pipeline.pkl")
+    with open(pipeline_path, 'wb') as f:
+        pickle.dump(pipeline, f)
+    
+    return FileResponse(
+        path=pipeline_path,
+        media_type="application/octet-stream",
+        filename=f"automl_pipeline_{project_id}.pkl"
+    )
+
+# ==================== PART 15: PREDICTION API ====================
+
+class PredictionRequest(BaseModel):
+    data: List[Dict[str, Any]]  # List of records to predict
+
+class PredictionResponse(BaseModel):
+    predictions: List[Any]
+    feature_names: List[str]
+    model_name: str
+    prediction_count: int
+
+@router.post("/{project_id}/predict")
+async def make_predictions(project_id: str, request: PredictionRequest):
+    """Make predictions on new data using the trained best model"""
+    
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if not project.get("preprocessing_results") or not project.get("training_results"):
+        raise HTTPException(status_code=400, detail="Project must have preprocessing and training completed")
+    
+    try:
+        # Load preprocessing data
+        processed_path = project["preprocessing_results"]["processed_path"]
+        with open(processed_path, 'rb') as f:
+            preprocessing_data = pickle.load(f)
+        
+        # Load best model
+        best_model_result = project["training_results"].get("best_model")
+        if not best_model_result:
+            raise HTTPException(status_code=404, detail="No best model found")
+        
+        model_path = best_model_result.get("model_path")
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
+        
+        # Convert input data to DataFrame
+        input_df = pd.DataFrame(request.data)
+        
+        # Get original columns from analysis
+        expected_columns = [col["name"] for col in project["analysis_results"]["column_analysis"]]
+        target_column = project.get("target_column")
+        
+        # Remove target column if present in input
+        if target_column and target_column in input_df.columns:
+            input_df = input_df.drop(columns=[target_column])
+        
+        # Apply same preprocessing transformations
+        # This is a simplified version - in production, you'd want to properly handle all transformations
+        feature_names = preprocessing_data["feature_names"]
+        
+        # Basic preprocessing to match training features
+        # Handle missing columns by adding them with default values
+        for col in feature_names:
+            if col not in input_df.columns:
+                # Check if it's a one-hot encoded column
+                original_col = col.split('_')[0] if '_' in col else col
+                if original_col not in input_df.columns:
+                    input_df[col] = 0
+        
+        # Ensure columns are in the same order
+        try:
+            input_df = input_df[feature_names]
+        except KeyError:
+            # If exact match fails, try to reconstruct
+            aligned_df = pd.DataFrame(index=input_df.index, columns=feature_names)
+            for col in feature_names:
+                if col in input_df.columns:
+                    aligned_df[col] = input_df[col]
+                else:
+                    aligned_df[col] = 0
+            input_df = aligned_df.fillna(0)
+        
+        # Make predictions
+        predictions = model.predict(input_df)
+        
+        # Convert predictions to list
+        predictions_list = predictions.tolist()
+        
+        return {
+            "predictions": predictions_list,
+            "feature_names": feature_names,
+            "model_name": best_model_result["model_name"],
+            "prediction_count": len(predictions_list),
+            "task_type": project.get("task_type")
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+@router.post("/{project_id}/predict-file")
+async def predict_from_file(project_id: str, file: UploadFile = File(...)):
+    """Make predictions from an uploaded CSV file"""
+    
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if not project.get("preprocessing_results") or not project.get("training_results"):
+        raise HTTPException(status_code=400, detail="Project must have preprocessing and training completed")
+    
+    try:
+        # Read uploaded file
+        contents = await file.read()
+        df = pd.read_csv(StringIO(contents.decode('utf-8')))
+        
+        # Convert to list of dicts
+        data = df.to_dict('records')
+        
+        # Use the existing predict endpoint logic
+        pred_request = PredictionRequest(data=data)
+        result = await make_predictions(project_id, pred_request)
+        
+        # Add predictions to original dataframe
+        df['prediction'] = result["predictions"]
+        
+        # Save result temporarily
+        result_path = os.path.join(MODELS_DIR, f"{project_id}_predictions.csv")
+        df.to_csv(result_path, index=False)
+        
+        return {
+            **result,
+            "download_url": f"/api/training/{project_id}/download-predictions"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File prediction failed: {str(e)}")
+
+@router.get("/{project_id}/download-predictions")
+async def download_predictions(project_id: str):
+    """Download prediction results as CSV"""
+    
+    result_path = os.path.join(MODELS_DIR, f"{project_id}_predictions.csv")
+    
+    if not os.path.exists(result_path):
+        raise HTTPException(status_code=404, detail="Prediction results not found")
+    
+    return FileResponse(
+        path=result_path,
+        media_type="text/csv",
+        filename=f"predictions_{project_id}.csv"
+    )
