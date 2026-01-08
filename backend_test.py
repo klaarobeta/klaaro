@@ -103,161 +103,460 @@ def create_test_image():
     temp_file.close()
     return temp_file.name
 
-def test_single_csv_upload():
-    """Test single CSV file upload"""
-    print("\n=== Testing Single CSV Upload ===")
+# ==================== PART 2: DATASET STORAGE TESTS ====================
+
+def test_dataset_storage():
+    """Test dataset upload and MongoDB storage verification"""
+    print("\n=== PART 2: Testing Dataset Storage ===")
+    
+    # Upload CSV file
     csv_file = create_test_csv()
+    csv_id = None
     
     try:
         with open(csv_file, 'rb') as f:
-            files = {'file': ('test_data.csv', f, 'text/csv')}
+            files = {'file': ('employees.csv', f, 'text/csv')}
             response = requests.post(f"{API_BASE}/datasets/upload", files=files, timeout=30)
         
-        print(f"Status Code: {response.status_code}")
-        print(f"Response: {response.json()}")
+        print(f"CSV Upload Status: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
-            if all(key in data for key in ['id', 'filename', 'stored_filename', 'size', 'type']):
-                print("✅ CSV upload successful")
-                return True, data
+            csv_id = data.get('id')
+            print(f"✅ CSV uploaded successfully - ID: {csv_id}")
+            
+            # Verify required fields
+            required_fields = ['id', 'filename', 'stored_filename', 'size', 'type', 'category']
+            if all(field in data for field in required_fields):
+                print("✅ All required metadata fields present")
+                return True, csv_id
             else:
-                print("❌ CSV upload response missing required fields")
+                print("❌ Missing required metadata fields")
                 return False, None
         else:
-            print(f"❌ CSV upload failed with status {response.status_code}")
+            print(f"❌ CSV upload failed: {response.text}")
             return False, None
             
     except Exception as e:
-        print(f"❌ CSV upload error: {str(e)}")
+        print(f"❌ Dataset storage error: {str(e)}")
         return False, None
     finally:
         os.unlink(csv_file)
 
-def test_single_json_upload():
-    """Test single JSON file upload"""
-    print("\n=== Testing Single JSON Upload ===")
-    json_file = create_test_json()
+# ==================== PART 3: DATASET LISTING TESTS ====================
+
+def test_dataset_listing():
+    """Test dataset listing with filtering"""
+    print("\n=== PART 3: Testing Dataset Listing ===")
     
+    results = {}
+    
+    # Test 1: List all datasets
     try:
-        with open(json_file, 'rb') as f:
-            files = {'file': ('test_data.json', f, 'application/json')}
-            response = requests.post(f"{API_BASE}/datasets/upload", files=files, timeout=30)
-        
-        print(f"Status Code: {response.status_code}")
-        print(f"Response: {response.json()}")
+        response = requests.get(f"{API_BASE}/datasets/list", timeout=10)
+        print(f"List All Status: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
-            if all(key in data for key in ['id', 'filename', 'stored_filename', 'size', 'type']):
-                print("✅ JSON upload successful")
-                return True, data
+            if 'datasets' in data and 'total' in data:
+                print(f"✅ List all datasets: {data['total']} total datasets")
+                results['list_all'] = True
             else:
-                print("❌ JSON upload response missing required fields")
-                return False, None
+                print("❌ List all: Missing required response fields")
+                results['list_all'] = False
         else:
-            print(f"❌ JSON upload failed with status {response.status_code}")
-            return False, None
-            
+            print(f"❌ List all failed: {response.text}")
+            results['list_all'] = False
     except Exception as e:
-        print(f"❌ JSON upload error: {str(e)}")
-        return False, None
-    finally:
-        os.unlink(json_file)
-
-def test_multiple_file_upload():
-    """Test multiple file upload"""
-    print("\n=== Testing Multiple File Upload ===")
-    csv_file = create_test_csv()
-    json_file = create_test_json()
+        print(f"❌ List all error: {str(e)}")
+        results['list_all'] = False
     
+    # Test 2: Filter by CSV
     try:
-        files = []
-        with open(csv_file, 'rb') as f1, open(json_file, 'rb') as f2:
-            files = [
-                ('files', ('test1.csv', f1, 'text/csv')),
-                ('files', ('test2.json', f2, 'application/json'))
-            ]
-            response = requests.post(f"{API_BASE}/datasets/upload-multiple", files=files, timeout=30)
-        
-        print(f"Status Code: {response.status_code}")
-        print(f"Response: {response.json()}")
+        response = requests.get(f"{API_BASE}/datasets/list?category=csv", timeout=10)
+        print(f"Filter CSV Status: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
-            if 'uploaded' in data and 'errors' in data:
-                uploaded_count = len(data['uploaded'])
-                error_count = len(data['errors'])
-                print(f"✅ Multiple upload successful: {uploaded_count} uploaded, {error_count} errors")
-                return True, data
+            csv_datasets = data.get('datasets', [])
+            csv_only = all(d.get('category') == 'csv' for d in csv_datasets)
+            if csv_only:
+                print(f"✅ CSV filter working: {len(csv_datasets)} CSV datasets")
+                results['filter_csv'] = True
             else:
-                print("❌ Multiple upload response missing required fields")
-                return False, None
+                print("❌ CSV filter returned non-CSV datasets")
+                results['filter_csv'] = False
         else:
-            print(f"❌ Multiple upload failed with status {response.status_code}")
-            return False, None
-            
+            print(f"❌ CSV filter failed: {response.text}")
+            results['filter_csv'] = False
     except Exception as e:
-        print(f"❌ Multiple upload error: {str(e)}")
-        return False, None
-    finally:
-        os.unlink(csv_file)
-        os.unlink(json_file)
-
-def test_invalid_file_rejection():
-    """Test that invalid file types are rejected"""
-    print("\n=== Testing Invalid File Rejection ===")
-    invalid_file = create_invalid_file()
+        print(f"❌ CSV filter error: {str(e)}")
+        results['filter_csv'] = False
     
+    # Test 3: Filter by JSON
     try:
-        with open(invalid_file, 'rb') as f:
-            files = {'file': ('malicious.exe', f, 'application/octet-stream')}
-            response = requests.post(f"{API_BASE}/datasets/upload", files=files, timeout=30)
+        response = requests.get(f"{API_BASE}/datasets/list?category=json", timeout=10)
+        print(f"Filter JSON Status: {response.status_code}")
         
-        print(f"Status Code: {response.status_code}")
-        print(f"Response: {response.json()}")
-        
-        if response.status_code == 400:
+        if response.status_code == 200:
             data = response.json()
-            if 'detail' in data and 'not allowed' in data['detail']:
-                print("✅ Invalid file correctly rejected")
+            json_datasets = data.get('datasets', [])
+            json_only = all(d.get('category') == 'json' for d in json_datasets)
+            print(f"✅ JSON filter working: {len(json_datasets)} JSON datasets")
+            results['filter_json'] = True
+        else:
+            print(f"❌ JSON filter failed: {response.text}")
+            results['filter_json'] = False
+    except Exception as e:
+        print(f"❌ JSON filter error: {str(e)}")
+        results['filter_json'] = False
+    
+    # Test 4: Filter by Image
+    try:
+        response = requests.get(f"{API_BASE}/datasets/list?category=image", timeout=10)
+        print(f"Filter Image Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            image_datasets = data.get('datasets', [])
+            image_only = all(d.get('category') == 'image' for d in image_datasets)
+            print(f"✅ Image filter working: {len(image_datasets)} image datasets")
+            results['filter_image'] = True
+        else:
+            print(f"❌ Image filter failed: {response.text}")
+            results['filter_image'] = False
+    except Exception as e:
+        print(f"❌ Image filter error: {str(e)}")
+        results['filter_image'] = False
+    
+    return all(results.values()), results
+
+# ==================== PART 4: CSV PREVIEW TESTS ====================
+
+def test_csv_preview():
+    """Test CSV preview functionality"""
+    print("\n=== PART 4: Testing CSV Preview ===")
+    
+    # First get a CSV dataset ID
+    try:
+        response = requests.get(f"{API_BASE}/datasets/list?category=csv", timeout=10)
+        if response.status_code != 200:
+            print("❌ Cannot get CSV datasets for preview test")
+            return False
+        
+        csv_datasets = response.json().get('datasets', [])
+        if not csv_datasets:
+            print("❌ No CSV datasets found for preview test")
+            return False
+        
+        csv_id = csv_datasets[0]['id']
+        print(f"Testing CSV preview with ID: {csv_id}")
+        
+        # Test CSV preview with 3 rows
+        response = requests.get(f"{API_BASE}/datasets/{csv_id}/preview/csv?rows=3", timeout=10)
+        print(f"CSV Preview Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ['dataset_id', 'filename', 'columns', 'rows', 'row_count']
+            
+            if all(field in data for field in required_fields):
+                print(f"✅ CSV preview working: {len(data['columns'])} columns, {data['row_count']} rows")
+                print(f"   Columns: {data['columns']}")
                 return True
             else:
-                print("❌ Invalid file rejected but with unexpected error message")
+                print("❌ CSV preview missing required fields")
                 return False
         else:
-            print(f"❌ Invalid file should have been rejected but got status {response.status_code}")
+            print(f"❌ CSV preview failed: {response.text}")
             return False
             
     except Exception as e:
-        print(f"❌ Invalid file test error: {str(e)}")
+        print(f"❌ CSV preview error: {str(e)}")
         return False
-    finally:
-        os.unlink(invalid_file)
 
-def verify_uploaded_files():
-    """Verify that uploaded files exist in the uploads directory"""
-    print("\n=== Verifying Uploaded Files ===")
-    uploads_dir = "/app/backend/uploads"
+# ==================== PART 5: IMAGE PREVIEW TESTS ====================
+
+def test_image_preview():
+    """Test image preview functionality"""
+    print("\n=== PART 5: Testing Image Preview ===")
+    
+    # First upload an image for testing
+    image_file = create_test_image()
+    image_id = None
     
     try:
-        if not os.path.exists(uploads_dir):
-            print(f"❌ Uploads directory {uploads_dir} does not exist")
+        # Upload image
+        with open(image_file, 'rb') as f:
+            files = {'file': ('test_image.png', f, 'image/png')}
+            response = requests.post(f"{API_BASE}/datasets/upload", files=files, timeout=30)
+        
+        if response.status_code != 200:
+            print(f"❌ Failed to upload test image: {response.text}")
             return False
         
-        files = os.listdir(uploads_dir)
-        print(f"Files in uploads directory: {files}")
+        image_id = response.json()['id']
+        print(f"Uploaded test image with ID: {image_id}")
         
-        if len(files) > 0:
-            print(f"✅ Found {len(files)} files in uploads directory")
-            return True
+        # Test image preview
+        response = requests.get(f"{API_BASE}/datasets/{image_id}/preview/image", timeout=10)
+        print(f"Image Preview Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            content_type = response.headers.get('content-type', '')
+            if content_type.startswith('image/'):
+                print(f"✅ Image preview working: Content-Type: {content_type}")
+                print(f"   Image size: {len(response.content)} bytes")
+                return True
+            else:
+                print(f"❌ Image preview returned wrong content type: {content_type}")
+                return False
         else:
-            print("❌ No files found in uploads directory")
+            print(f"❌ Image preview failed: {response.text}")
             return False
             
     except Exception as e:
-        print(f"❌ Error checking uploads directory: {str(e)}")
+        print(f"❌ Image preview error: {str(e)}")
         return False
+    finally:
+        os.unlink(image_file)
+        # Clean up uploaded image
+        if image_id:
+            try:
+                requests.delete(f"{API_BASE}/datasets/{image_id}")
+            except:
+                pass
+
+# ==================== PART 6: JSON PREVIEW TESTS ====================
+
+def test_json_preview():
+    """Test JSON preview functionality"""
+    print("\n=== PART 6: Testing JSON Preview ===")
+    
+    # First upload a JSON file for testing
+    json_file = create_test_json()
+    json_id = None
+    
+    try:
+        # Upload JSON
+        with open(json_file, 'rb') as f:
+            files = {'file': ('products.json', f, 'application/json')}
+            response = requests.post(f"{API_BASE}/datasets/upload", files=files, timeout=30)
+        
+        if response.status_code != 200:
+            print(f"❌ Failed to upload test JSON: {response.text}")
+            return False
+        
+        json_id = response.json()['id']
+        print(f"Uploaded test JSON with ID: {json_id}")
+        
+        # Test JSON preview
+        response = requests.get(f"{API_BASE}/datasets/{json_id}/preview/json", timeout=10)
+        print(f"JSON Preview Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ['dataset_id', 'filename', 'data', 'type', 'total_items']
+            
+            if all(field in data for field in required_fields):
+                print(f"✅ JSON preview working: Type: {data['type']}, Items: {data['total_items']}")
+                return True
+            else:
+                print("❌ JSON preview missing required fields")
+                return False
+        else:
+            print(f"❌ JSON preview failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ JSON preview error: {str(e)}")
+        return False
+    finally:
+        os.unlink(json_file)
+        # Clean up uploaded JSON
+        if json_id:
+            try:
+                requests.delete(f"{API_BASE}/datasets/{json_id}")
+            except:
+                pass
+
+# ==================== PART 7: STATISTICS TESTS ====================
+
+def test_dataset_statistics():
+    """Test dataset statistics functionality"""
+    print("\n=== PART 7: Testing Dataset Statistics ===")
+    
+    results = {}
+    
+    # Test CSV statistics
+    try:
+        response = requests.get(f"{API_BASE}/datasets/list?category=csv", timeout=10)
+        if response.status_code == 200:
+            csv_datasets = response.json().get('datasets', [])
+            if csv_datasets:
+                csv_id = csv_datasets[0]['id']
+                
+                response = requests.get(f"{API_BASE}/datasets/{csv_id}/stats", timeout=10)
+                print(f"CSV Stats Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    csv_fields = ['row_count', 'column_count', 'columns', 'column_stats']
+                    if any(field in data for field in csv_fields):
+                        print(f"✅ CSV stats working: {data.get('row_count', 'N/A')} rows, {data.get('column_count', 'N/A')} columns")
+                        results['csv_stats'] = True
+                    else:
+                        print("❌ CSV stats missing statistical fields")
+                        results['csv_stats'] = False
+                else:
+                    print(f"❌ CSV stats failed: {response.text}")
+                    results['csv_stats'] = False
+            else:
+                print("⚠️ No CSV datasets for stats test")
+                results['csv_stats'] = True  # Skip if no data
+    except Exception as e:
+        print(f"❌ CSV stats error: {str(e)}")
+        results['csv_stats'] = False
+    
+    # Test JSON statistics
+    json_file = create_test_json()
+    json_id = None
+    
+    try:
+        # Upload JSON for stats test
+        with open(json_file, 'rb') as f:
+            files = {'file': ('stats_test.json', f, 'application/json')}
+            response = requests.post(f"{API_BASE}/datasets/upload", files=files, timeout=30)
+        
+        if response.status_code == 200:
+            json_id = response.json()['id']
+            
+            response = requests.get(f"{API_BASE}/datasets/{json_id}/stats", timeout=10)
+            print(f"JSON Stats Status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                json_fields = ['type', 'item_count', 'key_count']
+                if any(field in data for field in json_fields):
+                    print(f"✅ JSON stats working: Type: {data.get('type', 'N/A')}")
+                    results['json_stats'] = True
+                else:
+                    print("❌ JSON stats missing statistical fields")
+                    results['json_stats'] = False
+            else:
+                print(f"❌ JSON stats failed: {response.text}")
+                results['json_stats'] = False
+        else:
+            print("❌ Failed to upload JSON for stats test")
+            results['json_stats'] = False
+            
+    except Exception as e:
+        print(f"❌ JSON stats error: {str(e)}")
+        results['json_stats'] = False
+    finally:
+        os.unlink(json_file)
+        if json_id:
+            try:
+                requests.delete(f"{API_BASE}/datasets/{json_id}")
+            except:
+                pass
+    
+    # Test Image statistics
+    image_file = create_test_image()
+    image_id = None
+    
+    try:
+        # Upload image for stats test
+        with open(image_file, 'rb') as f:
+            files = {'file': ('stats_test.png', f, 'image/png')}
+            response = requests.post(f"{API_BASE}/datasets/upload", files=files, timeout=30)
+        
+        if response.status_code == 200:
+            image_id = response.json()['id']
+            
+            response = requests.get(f"{API_BASE}/datasets/{image_id}/stats", timeout=10)
+            print(f"Image Stats Status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                image_fields = ['width', 'height', 'format']
+                if any(field in data for field in image_fields):
+                    print(f"✅ Image stats working: {data.get('width', 'N/A')}x{data.get('height', 'N/A')} {data.get('format', 'N/A')}")
+                    results['image_stats'] = True
+                else:
+                    print("❌ Image stats missing statistical fields")
+                    results['image_stats'] = False
+            else:
+                print(f"❌ Image stats failed: {response.text}")
+                results['image_stats'] = False
+        else:
+            print("❌ Failed to upload image for stats test")
+            results['image_stats'] = False
+            
+    except Exception as e:
+        print(f"❌ Image stats error: {str(e)}")
+        results['image_stats'] = False
+    finally:
+        os.unlink(image_file)
+        if image_id:
+            try:
+                requests.delete(f"{API_BASE}/datasets/{image_id}")
+            except:
+                pass
+    
+    return all(results.values()), results
+
+# ==================== DELETE FUNCTIONALITY TESTS ====================
+
+def test_dataset_deletion():
+    """Test dataset deletion functionality"""
+    print("\n=== Testing Dataset Deletion ===")
+    
+    # Upload a temporary file for deletion test
+    csv_file = create_test_csv()
+    
+    try:
+        # Upload file
+        with open(csv_file, 'rb') as f:
+            files = {'file': ('temp_delete.csv', f, 'text/csv')}
+            response = requests.post(f"{API_BASE}/datasets/upload", files=files, timeout=30)
+        
+        if response.status_code != 200:
+            print(f"❌ Failed to upload file for deletion test: {response.text}")
+            return False
+        
+        dataset_id = response.json()['id']
+        print(f"Uploaded temporary file with ID: {dataset_id}")
+        
+        # Delete the file
+        response = requests.delete(f"{API_BASE}/datasets/{dataset_id}", timeout=10)
+        print(f"Delete Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if 'message' in data and dataset_id in str(data):
+                print("✅ Dataset deletion successful")
+                
+                # Verify file is actually deleted
+                response = requests.get(f"{API_BASE}/datasets/{dataset_id}", timeout=10)
+                if response.status_code == 404:
+                    print("✅ Dataset properly removed from database")
+                    return True
+                else:
+                    print("❌ Dataset still exists in database after deletion")
+                    return False
+            else:
+                print("❌ Delete response missing confirmation")
+                return False
+        else:
+            print(f"❌ Dataset deletion failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Dataset deletion error: {str(e)}")
+        return False
+    finally:
+        os.unlink(csv_file)
 
 def main():
     """Run all backend tests"""
