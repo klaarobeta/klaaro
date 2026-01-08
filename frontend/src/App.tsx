@@ -15,6 +15,7 @@ import Experiments from '@/pages/dashboard/Experiments'
 import Pipelines from '@/pages/dashboard/Pipelines'
 import Monitoring from '@/pages/dashboard/Monitoring'
 import Projects from '@/pages/dashboard/Projects'
+import ProjectDetail from '@/pages/dashboard/ProjectDetail'
 import Settings from '@/pages/dashboard/Settings'
 
 const queryClient = new QueryClient()
@@ -45,6 +46,7 @@ function App() {
               <Route path="pipelines" element={<Pipelines />} />
               <Route path="monitoring" element={<Monitoring />} />
               <Route path="projects" element={<Projects />} />
+              <Route path="projects/:projectId" element={<ProjectDetail />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
