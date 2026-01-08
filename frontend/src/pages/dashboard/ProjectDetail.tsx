@@ -103,6 +103,29 @@ export default function ProjectDetail() {
           // Config not available yet
         }
       }
+
+      // Load model selection if preprocessed
+      if (proj.preprocessing_results && !proj.preprocessing_results.error) {
+        try {
+          const selection = await trainingService.getModelSelection(projectId!)
+          if (selection) {
+            setModelSelection(selection)
+          }
+        } catch (e) {
+          // Selection not available yet
+        }
+      }
+
+      // Load training results if trained
+      if (proj.status === 'trained' || proj.status === 'training') {
+        try {
+          const status = await trainingService.getTrainingStatus(projectId!)
+          if (status.progress) setTrainingProgress(status.progress)
+          if (status.results) setTrainingResults(status.results)
+        } catch (e) {
+          // Results not available yet
+        }
+      }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' })
       navigate('/dashboard/projects')
