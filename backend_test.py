@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Backend API Tests for AI/ML Platform Dataset Upload Feature
-Tests the dataset upload endpoints with various file types and scenarios.
+Backend API Tests for AI/ML Platform Data Management Features (Parts 2-7)
+Tests dataset storage, listing, preview, statistics, and deletion functionality.
 """
 
 import requests
@@ -9,9 +9,11 @@ import os
 import tempfile
 import json
 from pathlib import Path
+from PIL import Image
+import io
 
-# Use localhost for testing since external URL routing has issues
-BACKEND_URL = "http://localhost:8001"
+# Use external URL for testing
+BACKEND_URL = "https://aiml-platform.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 print(f"Testing backend at: {API_BASE}")
