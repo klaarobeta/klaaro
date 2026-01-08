@@ -1,5 +1,37 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001'
 
+// ==================== LEGACY FILTER/SEARCH FUNCTIONS ====================
+// These are used by the existing DataFilter component
+
+export interface FilterRequest {
+  column: string
+  operator: string
+  value: string
+}
+
+export async function filterData(datasetId: string, filters: FilterRequest[]): Promise<{ rows: any[]; total: number }> {
+  const response = await fetch(`${BACKEND_URL}/api/datasets/${datasetId}/filter`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filters, limit: 100 })
+  })
+  if (!response.ok) throw new Error('Failed to filter data')
+  return response.json()
+}
+
+export async function searchData(datasetId: string, column: string, query: string): Promise<{ rows: any[]; total: number }> {
+  const response = await fetch(`${BACKEND_URL}/api/datasets/${datasetId}/search?column=${encodeURIComponent(column)}&query=${encodeURIComponent(query)}&limit=100`)
+  if (!response.ok) throw new Error('Failed to search data')
+  return response.json()
+}
+
+export async function getUniqueValues(datasetId: string, column: string): Promise<string[]> {
+  // This is a helper function - we'll return empty for now
+  return []
+}
+
+// ==================== PREPROCESSING PIPELINE TYPES ====================
+
 export interface ImputationConfig {
   strategy: 'mean' | 'median' | 'most_frequent' | 'constant'
   fill_value?: any
