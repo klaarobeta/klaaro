@@ -574,7 +574,7 @@ export default function ProjectDetail() {
             { step: 1, label: 'Dataset', status: project.dataset_id ? 'completed' : 'pending' },
             { step: 2, label: 'Analysis', status: hasAnalysis ? 'completed' : project.status === 'analyzing' ? 'active' : 'pending' },
             { step: 3, label: 'Preprocessing', status: hasPreprocessing ? 'completed' : project.status === 'preprocessing' ? 'active' : 'pending' },
-            { step: 4, label: 'Training', status: project.model_id ? 'completed' : project.status === 'training' ? 'active' : 'pending' },
+            { step: 4, label: 'Training', status: trainingResults ? 'completed' : project.status === 'training' ? 'active' : hasPreprocessing ? 'pending' : 'pending' },
             { step: 5, label: 'Complete', status: project.status === 'completed' ? 'completed' : 'pending' },
           ].map((item, index, arr) => (
             <div key={item.step} className="flex items-center flex-1">
