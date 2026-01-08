@@ -22,7 +22,9 @@ async def lifespan(app: FastAPI):
     
     # Pass db to dataset router
     from routes import dataset as dataset_module
+    from routes import preprocessing as preprocessing_module
     dataset_module.db = db
+    preprocessing_module.db = db
     
     print(f"Connected to MongoDB: {DB_NAME}")
     yield
