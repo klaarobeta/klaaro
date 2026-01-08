@@ -156,7 +156,7 @@ export const trainingService = {
       throw new Error(error.detail || 'Failed to get training results')
     }
     return response.json()
-  }
+  },
 
   // PART 14: Download model
   getDownloadModelUrl(projectId: string, modelId: string): string {
