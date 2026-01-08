@@ -534,11 +534,24 @@ export default function ProjectDetail() {
       )}
 
       {/* Preprocessing Results */}
-      {hasPreprocessing && !modelSelection && !trainingResults && (
+      {hasPreprocessing && !modelSelection && !trainingResults && !selectingModels && (
         <PreprocessingResultsView
           results={project.preprocessing_results as PreprocessingResults}
           onContinue={handleContinueToTraining}
         />
+      )}
+
+      {/* Loading state for model selection */}
+      {selectingModels && (
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
+          <div className="flex items-center gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-1">Selecting Models</h3>
+              <p className="text-sm text-gray-600">Analyzing your data to recommend the best models...</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Model Selection (after preprocessing, before training) */}
