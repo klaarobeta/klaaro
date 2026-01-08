@@ -61,16 +61,19 @@ backend:
 
 frontend:
   - task: "Data upload UI with drag & drop"
-    implemented: false
-    working: "NA"
-    file: "src/App.tsx"
-    stuck_count: 0
+    implemented: true
+    working: false
+    file: "src/pages/DataUploadPage.tsx"
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Frontend testing not performed as per system limitations - drag & drop features not tested"
+      - working: false
+        agent: "testing"
+        comment: "UI implementation is perfect - all required elements present and working correctly. File upload flow works but fails due to backend API connectivity issue. External URL (https://45ea665b-d650-4289-9aa6-189fb0d30319.preview.emergentagent.com/api/health) returns 404, indicating Kubernetes ingress routing problem. Frontend code is complete and functional."
 
 metadata:
   created_by: "testing_agent"
