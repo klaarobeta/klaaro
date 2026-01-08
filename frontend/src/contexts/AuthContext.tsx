@@ -13,23 +13,60 @@ const VALID_CODE = 'lolamlol';
 const STORAGE_KEY = 'klaaro_access';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [accessCode, setAccessCode] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Initialize from localStorage immediately
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        return data.code && data.code.toLowerCase() === VALID_CODE;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+  const [accessCode, setAccessCode] = useState<string | null>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
         const data = JSON.parse(stored);
         if (data.code && data.code.toLowerCase() === VALID_CODE) {
-          setIsAuthenticated(true);
-          setAccessCode(data.code);
+          return data.code;
         }
       } catch {
-        localStorage.removeItem(STORAGE_KEY);
+        return null;
       }
     }
-  }, []);
+    return null;
+  });
+
+  useEffect(() => {
+    // Re-check localStorage on mount and periodically to prevent loss
+    const checkAuth = () => {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          if (data.code && data.code.toLowerCase() === VALID_CODE) {
+            if (!isAuthenticated) {
+              setIsAuthenticated(true);
+              setAccessCode(data.code);
+            }
+          }
+        } catch {
+          // Keep current state if parse fails
+        }
+      }
+    };
+
+    checkAuth();
+    
+    // Check every 5 seconds to ensure auth persists
+    const interval = setInterval(checkAuth, 5000);
+    
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const login = (code: string): boolean => {
     if (code.toLowerCase() === VALID_CODE) {
