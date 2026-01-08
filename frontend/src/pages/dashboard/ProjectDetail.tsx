@@ -29,6 +29,7 @@ import PreprocessingResultsView from '@/components/preprocessing/PreprocessingRe
 import ModelSelectionView from '@/components/training/ModelSelectionView'
 import TrainingProgressView from '@/components/training/TrainingProgressView'
 import TrainingResultsView from '@/components/training/TrainingResultsView'
+import PredictionView from '@/components/training/PredictionView'
 
 interface Dataset {
   id: string
