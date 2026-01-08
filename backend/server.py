@@ -52,9 +52,11 @@ app.add_middleware(
 # Import and include routers
 from routes.dataset import router as dataset_router
 from routes.preprocessing import router as preprocessing_router
+from routes.project import router as project_router
 
 app.include_router(dataset_router, prefix="/api/datasets", tags=["datasets"])
 app.include_router(preprocessing_router, prefix="/api/datasets", tags=["preprocessing"])
+app.include_router(project_router, prefix="/api/projects", tags=["projects"])
 
 @app.get("/api/health")
 async def health_check():
