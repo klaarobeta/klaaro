@@ -83,15 +83,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Health endpoint implementation"
-    - "Single file upload endpoint"
-    - "Multiple file upload endpoint"
-    - "File type validation"
-    - "File storage system"
-  stuck_tasks: []
+    - "Data upload UI with drag & drop"
+  stuck_tasks:
+    - "Data upload UI with drag & drop"
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "testing"
     message: "Backend API testing completed successfully. All dataset upload endpoints working correctly. External URL routing issue identified - APIs work on localhost but not through external preview URL. This is likely a Kubernetes ingress configuration issue that needs main agent attention."
+  - agent: "testing"
+    message: "Frontend UI testing completed. All required UI elements are implemented and working perfectly: AI/ML Platform header with database icon, Data Management section, Upload Dataset card, drag & drop zone with correct text, and supported formats text. File upload flow works correctly - files can be selected, appear in list, and upload button appears. However, uploads fail due to backend API connectivity issue. External URL returns 404, indicating Kubernetes ingress routing problem. Frontend implementation is complete and functional."
