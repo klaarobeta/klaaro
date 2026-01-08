@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Backend API Tests for AI/ML Platform Data Management Features (Parts 2-7)
-Tests dataset storage, listing, preview, statistics, and deletion functionality.
+Backend API Tests for AI/ML Platform Data Management Features (Parts 2-15)
+Tests dataset storage, listing, preview, statistics, deletion, exploration, charts, preprocessing, and export functionality.
 """
 
 import requests
