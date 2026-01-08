@@ -10,17 +10,8 @@ import tempfile
 import json
 from pathlib import Path
 
-# Get backend URL from frontend .env file
-def get_backend_url():
-    frontend_env_path = "/app/frontend/.env"
-    if os.path.exists(frontend_env_path):
-        with open(frontend_env_path, 'r') as f:
-            for line in f:
-                if line.startswith('VITE_BACKEND_URL='):
-                    return line.split('=', 1)[1].strip()
-    return "http://localhost:8001"
-
-BACKEND_URL = get_backend_url()
+# Use localhost for testing since external URL routing has issues
+BACKEND_URL = "http://localhost:8001"
 API_BASE = f"{BACKEND_URL}/api"
 
 print(f"Testing backend at: {API_BASE}")
