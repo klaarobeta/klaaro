@@ -677,7 +677,7 @@ async def run_training(project_id: str, models_to_train: List[Dict], task_type: 
                             y_prob = model.predict_proba(X_test)
                             if y_prob.shape[1] == 2:
                                 metrics["auc_roc"] = float(roc_auc_score(y_test, y_prob[:, 1]))
-                    except:
+                    except Exception:
                         pass
                 else:  # regression
                     metrics = {
@@ -692,7 +692,7 @@ async def run_training(project_id: str, models_to_train: List[Dict], task_type: 
                     cv_scores = cross_val_score(model, X_train, y_train, cv=min(5, len(X_train)), scoring='accuracy' if task_type == 'classification' else 'r2')
                     metrics["cv_mean"] = float(cv_scores.mean())
                     metrics["cv_std"] = float(cv_scores.std())
-                except:
+                except Exception:
                     pass
                 
                 # Save model
