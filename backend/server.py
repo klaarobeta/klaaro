@@ -25,10 +25,12 @@ async def lifespan(app: FastAPI):
     from routes import preprocessing as preprocessing_module
     from routes import project as project_module
     from routes import analysis as analysis_module
+    from routes import preprocessing_pipeline as pipeline_module
     dataset_module.db = db
     preprocessing_module.db = db
     project_module.db = db
     analysis_module.db = db
+    pipeline_module.db = db
     
     print(f"Connected to MongoDB: {DB_NAME}")
     yield
