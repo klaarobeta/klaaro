@@ -10,7 +10,11 @@ interface FileWithStatus {
   error?: string
 }
 
-export default function FileUploader() {
+interface Props {
+  onUploadComplete?: () => void
+}
+
+export default function FileUploader({ onUploadComplete }: Props) {
   const [files, setFiles] = useState<FileWithStatus[]>([])
   const [isUploading, setIsUploading] = useState(false)
 
@@ -31,7 +35,7 @@ export default function FileUploader() {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
       'image/*': ['.png', '.jpg', '.jpeg'],
     },
-    maxSize: 100 * 1024 * 1024, // 100MB
+    maxSize: 100 * 1024 * 1024,
   })
 
   const removeFile = (index: number) => {
@@ -40,11 +44,11 @@ export default function FileUploader() {
 
   const uploadFiles = async () => {
     setIsUploading(true)
+    let anySuccess = false
     
     for (let i = 0; i < files.length; i++) {
       if (files[i].status !== 'pending') continue
       
-      // Update status to uploading
       setFiles(prev => prev.map((f, idx) => 
         idx === i ? { ...f, status: 'uploading' as const } : f
       ))
@@ -54,6 +58,7 @@ export default function FileUploader() {
         setFiles(prev => prev.map((f, idx) => 
           idx === i ? { ...f, status: 'success' as const, result } : f
         ))
+        anySuccess = true
       } catch (err: any) {
         setFiles(prev => prev.map((f, idx) => 
           idx === i ? { ...f, status: 'error' as const, error: err.response?.data?.detail || 'Upload failed' } : f
@@ -62,6 +67,13 @@ export default function FileUploader() {
     }
     
     setIsUploading(false)
+    if (anySuccess && onUploadComplete) {
+      onUploadComplete()
+    }
+  }
+
+  const clearCompleted = () => {
+    setFiles(prev => prev.filter(f => f.status === 'pending'))
   }
 
   const formatFileSize = (bytes: number) => {
@@ -71,6 +83,7 @@ export default function FileUploader() {
   }
 
   const pendingCount = files.filter(f => f.status === 'pending').length
+  const completedCount = files.filter(f => f.status === 'success' || f.status === 'error').length
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -103,19 +116,29 @@ export default function FileUploader() {
         <div className="mt-6 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-gray-700">Files ({files.length})</h3>
-            {pendingCount > 0 && (
-              <button
-                onClick={uploadFiles}
-                disabled={isUploading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isUploading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
-                ) : (
-                  <><Upload className="w-4 h-4" /> Upload {pendingCount} file{pendingCount > 1 ? 's' : ''}</>
-                )}
-              </button>
-            )}
+            <div className="flex gap-2">
+              {completedCount > 0 && (
+                <button
+                  onClick={clearCompleted}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Clear completed
+                </button>
+              )}
+              {pendingCount > 0 && (
+                <button
+                  onClick={uploadFiles}
+                  disabled={isUploading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                >
+                  {isUploading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+                  ) : (
+                    <><Upload className="w-4 h-4" /> Upload {pendingCount} file{pendingCount > 1 ? 's' : ''}</>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {files.map((f, index) => (
@@ -133,7 +156,6 @@ export default function FileUploader() {
                 </p>
               </div>
               
-              {/* Status indicator */}
               <div className="flex-shrink-0">
                 {f.status === 'pending' && (
                   <button
@@ -152,7 +174,7 @@ export default function FileUploader() {
                 {f.status === 'error' && (
                   <div className="flex items-center gap-1">
                     <AlertCircle className="w-5 h-5 text-red-500" />
-                    <span className="text-xs text-red-500">{f.error}</span>
+                    <span className="text-xs text-red-500 max-w-32 truncate">{f.error}</span>
                   </div>
                 )}
               </div>
