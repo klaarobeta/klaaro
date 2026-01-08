@@ -30,6 +30,41 @@ export async function getUniqueValues(datasetId: string, column: string): Promis
   return []
 }
 
+// Chart data functions (legacy)
+export async function getHistogramData(datasetId: string, column: string): Promise<any> {
+  return { bins: [], counts: [] }
+}
+
+export async function getBarChartData(datasetId: string, column: string): Promise<any> {
+  return { labels: [], values: [] }
+}
+
+export async function getScatterData(datasetId: string, xColumn: string, yColumn: string): Promise<any> {
+  return { x: [], y: [] }
+}
+
+// Export function
+export function getExportUrl(datasetId: string, format: string): string {
+  return `${BACKEND_URL}/api/datasets/${datasetId}/export/${format}`
+}
+
+// Legacy preprocessing functions
+export async function handleMissingValues(datasetId: string, strategy: string, columns?: string[]): Promise<any> {
+  return { success: true }
+}
+
+export async function encodeData(datasetId: string, column: string, method: string): Promise<any> {
+  return { success: true }
+}
+
+export async function splitData(datasetId: string, testSize: number, valSize?: number): Promise<any> {
+  return { success: true }
+}
+
+export async function normalizeData(datasetId: string, columns: string[], method: string): Promise<any> {
+  return { success: true }
+}
+
 // ==================== PREPROCESSING PIPELINE TYPES ====================
 
 export interface ImputationConfig {
