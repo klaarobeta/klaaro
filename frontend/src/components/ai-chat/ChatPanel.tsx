@@ -130,6 +130,7 @@ export default function ChatPanel({ projectId, onWorkflowUpdate, initialWorkflow
         }
 
         // Send updates to parent
+        setWorkflowStatus(data)
         onWorkflowUpdate(data)
 
         // Check if complete
