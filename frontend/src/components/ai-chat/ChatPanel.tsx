@@ -44,6 +44,28 @@ export default function ChatPanel({ projectId, onWorkflowUpdate }: ChatPanelProp
     scrollToBottom()
   }, [messages])
 
+  // Fetch initial workflow status on mount
+  useEffect(() => {
+    const fetchInitialStatus = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/ai/${projectId}/workflow-status`)
+        if (response.ok) {
+          const data = await response.json()
+          onWorkflowUpdate(data)
+          
+          // If already trained, show completion message
+          if (data.status === 'trained') {
+            addMessage('system', `✅ This project has a trained model ready!\n\nYou can view the results in the preview panel.`, { status: 'complete' })
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch initial status:', error)
+      }
+    }
+    
+    fetchInitialStatus()
+  }, [projectId])
+
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
