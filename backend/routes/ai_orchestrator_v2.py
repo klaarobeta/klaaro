@@ -447,6 +447,9 @@ Return only Python code:"""
         data = pickle.load(f)
     best_model["test_actuals"] = data["y_test"].tolist() if hasattr(data["y_test"], 'tolist') else list(data["y_test"])
     
+    # Remove the model object itself (not JSON serializable) - it's saved to disk
+    del best_model["model"]
+    
     return best_model
 
 
