@@ -174,7 +174,6 @@ async def analyze_with_claude(df: pd.DataFrame, user_prompt: str) -> Dict[str, A
         "columns": list(df.columns),
         "dtypes": {col: str(dtype) for col, dtype in df.dtypes.items()},
         "missing_values": {col: int(count) for col, count in df.isnull().sum().items() if count > 0},
-        "numeric_stats": {col: stats.to_dict() for col, stats in df.describe().items()}
     }
     
     prompt = f"""Analyze this dataset for machine learning.
@@ -201,13 +200,15 @@ Return JSON with:
 
 Only JSON:"""
 
-    response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    # Use emergentintegrations
+    chat = LlmChat(
+        api_key=EMERGENT_KEY,
+        session_id=f"analysis_{datetime.now().timestamp()}",
+        system_message="You are an expert ML data scientist."
+    ).with_model("anthropic", "claude-4-sonnet-20250514")
     
-    result_text = response.content[0].text
+    message = UserMessage(text=prompt)
+    result_text = await chat.send_message(message)
     
     # Parse JSON
     if "```json" in result_text:
