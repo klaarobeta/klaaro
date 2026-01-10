@@ -330,13 +330,15 @@ metrics = {{'accuracy': accuracy_score(y_test, y_pred)}}
 cv_scores = cross_val_score(model, X_train, y_train, cv=5)
 ```"""
 
-    response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    chat = LlmChat(
+        api_key=EMERGENT_KEY,
+        session_id=f"model_gen_{datetime.now().timestamp()}",
+        system_message="You are an expert ML engineer."
+    ).with_model("anthropic", "claude-4-sonnet-20250514")
     
-    code = response.content[0].text
+    message = UserMessage(text=prompt)
+    code = await chat.send_message(message)
+    
     if "```python" in code:
         code = code.split("```python")[1].split("```")[0].strip()
     
