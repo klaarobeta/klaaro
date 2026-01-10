@@ -635,11 +635,3 @@ tell them the model can predict and ask them to provide the input feature values
             "answer": f"Sorry, I encountered an error: {str(e)}",
             "status": "error"
         }
-
-        }
-    elif task_type == "classification":
-        from sklearn.metrics import confusion_matrix
-        cm = confusion_matrix(model_info["test_actuals"], model_info["predictions"])
-        viz_data["confusion_matrix"] = cm.tolist()
-    
-    return viz_data
