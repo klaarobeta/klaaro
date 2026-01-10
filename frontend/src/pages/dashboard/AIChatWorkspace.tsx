@@ -9,25 +9,10 @@ export default function AIChatWorkspace() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
   
-  const [currentStep, setCurrentStep] = useState<'idle' | 'analysis' | 'preprocessing' | 'model' | 'complete'>('idle')
-  const [analysisData, setAnalysisData] = useState<any>(null)
-  const [preprocessingData, setPreprocessingData] = useState<any>(null)
-  const [modelData, setModelData] = useState<any>(null)
-  const [showDevMode, setShowDevMode] = useState(false)
+  const [workflowStatus, setWorkflowStatus] = useState<any>(null)
 
-  const handleAnalysisComplete = (data: any) => {
-    setAnalysisData(data)
-    setCurrentStep('analysis')
-  }
-
-  const handlePreprocessingComplete = (data: any) => {
-    setPreprocessingData(data)
-    setCurrentStep('preprocessing')
-  }
-
-  const handleModelComplete = (data: any) => {
-    setModelData(data)
-    setCurrentStep('complete')
+  const handleWorkflowUpdate = (status: any) => {
+    setWorkflowStatus(status)
   }
 
   const handleBack = () => {
@@ -35,7 +20,6 @@ export default function AIChatWorkspace() {
   }
 
   const handleDevMode = () => {
-    // Navigate to old project detail page (developer mode)
     navigate(`/dashboard/projects/${projectId}/developer`)
   }
 
@@ -55,7 +39,7 @@ export default function AIChatWorkspace() {
           </Button>
           <div>
             <h1 className="text-lg font-semibold text-gray-900">AI AutoML Workspace</h1>
-            <p className="text-xs text-gray-500">Build ML models through conversation</p>
+            <p className="text-xs text-gray-500">Fully automated model building with Claude AI</p>
           </div>
         </div>
         <Button
@@ -69,26 +53,18 @@ export default function AIChatWorkspace() {
         </Button>
       </div>
 
-      {/* Split Screen: Chat (Left) | Preview (Right) */}
+      {/* Split Screen */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Chat Panel - 50% */}
         <div className="w-1/2 border-r">
           <ChatPanel
             projectId={projectId!}
-            onAnalysisComplete={handleAnalysisComplete}
-            onPreprocessingComplete={handlePreprocessingComplete}
-            onModelComplete={handleModelComplete}
+            onWorkflowUpdate={handleWorkflowUpdate}
           />
         </div>
-
-        {/* Preview Panel - 50% */}
         <div className="w-1/2">
           <PreviewPanel
             projectId={projectId!}
-            currentStep={currentStep}
-            analysisData={analysisData}
-            preprocessingData={preprocessingData}
-            modelData={modelData}
+            workflowStatus={workflowStatus}
           />
         </div>
       </div>
