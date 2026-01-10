@@ -8,22 +8,24 @@ interface PreviewPanelProps {
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
 
-export default function PreviewPanel({
-  projectId,
-  currentStep,
-  analysisData,
-  preprocessingData,
-  modelData
-}: PreviewPanelProps) {
+export default function PreviewPanel({ projectId, workflowStatus }: PreviewPanelProps) {
   const [visualizationData, setVisualizationData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  // Load visualization data when model is complete
+  const currentStep = workflowStatus?.status || 'idle'
+  const workflowLog = workflowStatus?.workflow_log || []
+
+  // Get data from workflow log
+  const analysisData = workflowLog.find((log: any) => log.step === 'analysis')?.result
+  const preprocessingData = workflowLog.find((log: any) => log.step === 'preprocessing')?.result
+  const modelData = workflowLog.find((log: any) => log.step === 'model_generation')?.result
+
+  // Load visualization when trained
   useEffect(() => {
-    if (currentStep === 'complete' && modelData) {
+    if (currentStep === 'trained') {
       loadVisualizationData()
     }
-  }, [currentStep, modelData])
+  }, [currentStep])
 
   const loadVisualizationData = async () => {
     setLoading(true)
