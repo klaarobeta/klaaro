@@ -606,6 +606,23 @@ export default function ProjectDetail() {
             taskType={project.task_type || 'classification'}
           />
           
+          {/* NEW: Model Visualization */}
+          <ModelVisualization
+            projectId={projectId!}
+            results={trainingResults}
+            taskType={project.task_type || 'classification'}
+            featureNames={project.preprocessing_results?.feature_names || []}
+          />
+          
+          {/* NEW: AI Chat Agent */}
+          <ModelChatAgent
+            projectId={projectId!}
+            taskType={project.task_type || 'classification'}
+            featureNames={project.preprocessing_results?.feature_names || []}
+            modelName={trainingResults.best_model?.model_name || 'Unknown Model'}
+            targetColumn={project.target_column || 'target'}
+          />
+          
           {/* PART 15: Prediction View */}
           <PredictionView
             projectId={projectId!}
