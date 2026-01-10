@@ -1,6 +1,5 @@
 """
-Fully Automated AI AutoML Workflow - No Approvals Needed
-Claude analyzes, preprocesses, generates model, iterates for accuracy
+Fully Automated AI AutoML Workflow using Emergent Integrations
 """
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
@@ -12,14 +11,17 @@ import json
 import os
 import pickle
 from datetime import datetime, timezone
-import anthropic
-import asyncio
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Use emergentintegrations for LLM
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 router = APIRouter()
 db = None
 
 EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY', 'sk-emergent-59a1cA994F1B401B0E')
-client = anthropic.Anthropic(api_key=EMERGENT_KEY)
 
 class AutoMLRequest(BaseModel):
     project_id: str
