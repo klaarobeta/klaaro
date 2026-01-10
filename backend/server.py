@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     from routes import analysis as analysis_module
     from routes import preprocessing_pipeline as pipeline_module
     from routes import training as training_module
-    from routes import ai_orchestrator as ai_module
+    from routes import ai_orchestrator_v2 as ai_module
     dataset_module.db = db
     preprocessing_module.db = db
     project_module.db = db
