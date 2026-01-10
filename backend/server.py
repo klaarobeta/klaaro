@@ -64,7 +64,7 @@ from routes.project import router as project_router
 from routes.analysis import router as analysis_router
 from routes.preprocessing_pipeline import router as pipeline_router
 from routes.training import router as training_router
-from routes.ai_orchestrator import router as ai_router
+from routes.ai_orchestrator_v2 import router as ai_router
 
 app.include_router(dataset_router, prefix="/api/datasets", tags=["datasets"])
 app.include_router(preprocessing_router, prefix="/api/datasets", tags=["preprocessing"])
