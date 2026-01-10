@@ -505,6 +505,13 @@ async def get_visualization_data(project_id: str):
         viz_data["regression_plot"] = {
             "actual": model_info["test_actuals"][:100],
             "predicted": model_info["predictions"][:100]
+        }
+    elif task_type == "classification" and "test_actuals" in model_info and "predictions" in model_info:
+        from sklearn.metrics import confusion_matrix
+        cm = confusion_matrix(model_info["test_actuals"], model_info["predictions"])
+        viz_data["confusion_matrix"] = cm.tolist()
+    
+    return viz_data
 
 
 # ============ PREDICTION ENDPOINT ============
