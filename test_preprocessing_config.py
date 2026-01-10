@@ -11,7 +11,7 @@ import json
 import time
 
 # Use external URL for testing
-BACKEND_URL = "https://train-genius-2.preview.emergentagent.com"
+BACKEND_URL = "https://promptml.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 print(f"Testing preprocessing configuration at: {API_BASE}")
