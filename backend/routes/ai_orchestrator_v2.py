@@ -27,6 +27,10 @@ class AutoMLRequest(BaseModel):
     project_id: str
     user_prompt: str
 
+class PredictionRequest(BaseModel):
+    project_id: str
+    input_data: dict  # e.g., {"bedrooms": 3, "bathrooms": 2, "sqft_living": 2000, ...}
+
 # ============ FULLY AUTOMATED WORKFLOW ============
 
 @router.post("/auto-build")
