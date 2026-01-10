@@ -5,6 +5,7 @@ interface AuthContextType {
   accessCode: string | null;
   login: (code: string) => boolean;
   logout: () => void;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,38 +28,32 @@ const checkAuthFromStorage = (): boolean => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Use ref to track if we've initialized from storage
-  const initializedRef = useRef(false);
-  
-  // Initialize state from localStorage
-  const [isAuthenticated, setIsAuthenticated] = useState(() => checkAuthFromStorage());
-  const [accessCode, setAccessCode] = useState<string | null>(() => {
+  // Start with loading state to prevent premature redirects
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [accessCode, setAccessCode] = useState<string | null>(null);
+
+  // Initialize auth state from localStorage on mount
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const data = JSON.parse(stored);
         if (data.code && data.code.toLowerCase() === VALID_CODE) {
-          return data.code;
+          setIsAuthenticated(true);
+          setAccessCode(data.code);
         }
       }
     } catch {
-      return null;
+      // Keep defaults if parsing fails
+    } finally {
+      // Mark as initialized
+      setIsLoading(false);
     }
-    return null;
-  });
+  }, []);
 
-  // Sync with localStorage on mount and when storage changes
+  // Listen for storage events (sync across tabs)
   useEffect(() => {
-    // Only run once on mount
-    if (!initializedRef.current) {
-      const isAuth = checkAuthFromStorage();
-      if (isAuth !== isAuthenticated) {
-        setIsAuthenticated(isAuth);
-      }
-      initializedRef.current = true;
-    }
-
-    // Listen for storage events (sync across tabs)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
         const isAuth = checkAuthFromStorage();
@@ -68,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [isAuthenticated]);
+  }, []);
 
   const login = (code: string): boolean => {
     if (code.toLowerCase() === VALID_CODE) {
@@ -91,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, accessCode, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, accessCode, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
