@@ -47,7 +47,8 @@ function App() {
               <Route path="pipelines" element={<Pipelines />} />
               <Route path="monitoring" element={<Monitoring />} />
               <Route path="projects" element={<Projects />} />
-              <Route path="projects/:projectId" element={<ProjectDetail />} />
+              <Route path="projects/:projectId" element={<AIChatWorkspace />} />
+              <Route path="projects/:projectId/developer" element={<ProjectDetail />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
