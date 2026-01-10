@@ -16,6 +16,7 @@ import Pipelines from '@/pages/dashboard/Pipelines'
 import Monitoring from '@/pages/dashboard/Monitoring'
 import Projects from '@/pages/dashboard/Projects'
 import ProjectDetail from '@/pages/dashboard/ProjectDetail'
+import AIChatWorkspace from '@/pages/dashboard/AIChatWorkspace'
 import Settings from '@/pages/dashboard/Settings'
 
 const queryClient = new QueryClient()
