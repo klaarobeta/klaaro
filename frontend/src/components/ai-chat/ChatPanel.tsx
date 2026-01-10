@@ -182,7 +182,50 @@ export default function ChatPanel({ projectId, onWorkflowUpdate }: ChatPanelProp
     setInput('')
     setIsProcessing(true)
 
-    // Add status message
+    // Detect if this is a question about existing model or a new training request
+    const questionKeywords = ['predict', 'prediction', 'what if', 'how much', 'estimate', 'value', 'tell me', 'explain', 'how does', 'why', 'what is']
+    const isQuestion = questionKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))
+    
+    // Check if model is already trained
+    const hasTrainedModel = currentWorkflowStep === 'trained' || workflowStatus?.status === 'trained'
+
+    if (isQuestion && hasTrainedModel) {
+      // User is asking a question about the trained model
+      const statusId = addMessage('assistant', '🤔 Let me check that for you...', { status: 'pending' })
+      
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/ai/ask-question`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            project_id: projectId, 
+            user_prompt: userMessage 
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to get answer')
+        }
+
+        const data = await response.json()
+        
+        updateMessage(statusId, {
+          content: data.answer,
+          status: 'complete'
+        })
+        
+      } catch (error: any) {
+        updateMessage(statusId, {
+          content: `❌ Failed to answer: ${error.message}`,
+          status: 'error'
+        })
+      }
+      
+      setIsProcessing(false)
+      return
+    }
+
+    // Otherwise, start a new training workflow
     const statusId = addMessage('assistant', '🚀 Starting automated build...', { status: 'pending' })
 
     try {
