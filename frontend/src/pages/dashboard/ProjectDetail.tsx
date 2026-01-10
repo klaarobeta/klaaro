@@ -30,6 +30,8 @@ import ModelSelectionView from '@/components/training/ModelSelectionView'
 import TrainingProgressView from '@/components/training/TrainingProgressView'
 import TrainingResultsView from '@/components/training/TrainingResultsView'
 import PredictionView from '@/components/training/PredictionView'
+import ModelVisualization from '@/components/training/ModelVisualization'
+import ModelChatAgent from '@/components/training/ModelChatAgent'
 
 interface Dataset {
   id: string
