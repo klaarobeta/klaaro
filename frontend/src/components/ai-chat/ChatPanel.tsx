@@ -186,16 +186,12 @@ export default function ChatPanel({ projectId, onWorkflowUpdate, initialWorkflow
     setInput('')
     setIsProcessing(true)
 
-    // Check if model is already trained
+    // FIRST CHECK: Is there a trained model?
     const modelIsTrained = workflowStatus?.status === 'trained'
     
-    // Detect if this is a question about existing model
-    const questionWords = ['what', 'how', 'why', 'predict', 'prediction', 'tell me', 'explain', 'show me', 'can you', 'score', 'accuracy', 'performance']
-    const hasQuestionWord = questionWords.some(word => userMessage.toLowerCase().includes(word))
-    
-    // If model is trained AND user is asking a question, use ask-question endpoint
-    if (modelIsTrained && hasQuestionWord) {
-      const statusId = addMessage('assistant', '🤔 Let me check that for you...', { status: 'pending' })
+    if (modelIsTrained) {
+      // Model exists - ALWAYS answer questions, NEVER retrain
+      const statusId = addMessage('assistant', '🤔 Analyzing the trained model...', { status: 'pending' })
       
       try {
         const response = await fetch(`${BACKEND_URL}/api/ai/ask-question`, {
@@ -207,9 +203,7 @@ export default function ChatPanel({ projectId, onWorkflowUpdate, initialWorkflow
           })
         })
 
-        if (!response.ok) {
-          throw new Error('Failed to get answer')
-        }
+        if (!response.ok) throw new Error('Failed to get answer')
 
         const data = await response.json()
         
@@ -220,7 +214,7 @@ export default function ChatPanel({ projectId, onWorkflowUpdate, initialWorkflow
         
       } catch (error: any) {
         updateMessage(statusId, {
-          content: `❌ Failed to answer: ${error.message}`,
+          content: `❌ Error: ${error.message}`,
           status: 'error'
         })
       }
@@ -229,7 +223,7 @@ export default function ChatPanel({ projectId, onWorkflowUpdate, initialWorkflow
       return
     }
 
-    // Otherwise, start a new training workflow
+    // No trained model - start training
     const statusId = addMessage('assistant', '🚀 Starting automated build...', { status: 'pending' })
 
     try {
@@ -247,22 +241,14 @@ export default function ChatPanel({ projectId, onWorkflowUpdate, initialWorkflow
         throw new Error(error.detail || 'Failed to start build')
       }
 
-      // Start polling for progress
       startWorkflowPolling(statusId)
 
     } catch (error: any) {
       updateMessage(statusId, {
-        content: `❌ Failed to start: ${error.message}\n\nPlease ensure:\n• Dataset is uploaded\n• Project is properly configured\n\nTry again or check Developer Mode for manual control.`,
+        content: `❌ Failed: ${error.message}`,
         status: 'error'
       })
-      
       setIsProcessing(false)
-      
-      toast({
-        title: 'Failed to start',
-        description: error.message,
-        variant: 'destructive'
-      })
     }
   }
 
