@@ -3,10 +3,7 @@ import { BarChart, LineChart, TrendingUp, CheckCircle2, Loader2 } from 'lucide-r
 
 interface PreviewPanelProps {
   projectId: string
-  currentStep: 'idle' | 'analysis' | 'preprocessing' | 'model' | 'complete'
-  analysisData?: any
-  preprocessingData?: any
-  modelData?: any
+  workflowStatus: any
 }
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
