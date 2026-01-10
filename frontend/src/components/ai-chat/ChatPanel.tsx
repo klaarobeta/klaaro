@@ -14,11 +14,12 @@ interface ChatMessage {
 interface ChatPanelProps {
   projectId: string
   onWorkflowUpdate: (status: any) => void
+  initialWorkflowStatus?: any
 }
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
 
-export default function ChatPanel({ projectId, onWorkflowUpdate }: ChatPanelProps) {
+export default function ChatPanel({ projectId, onWorkflowUpdate, initialWorkflowStatus }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -31,6 +32,7 @@ export default function ChatPanel({ projectId, onWorkflowUpdate }: ChatPanelProp
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [currentWorkflowStep, setCurrentWorkflowStep] = useState<string>('')
+  const [workflowStatus, setWorkflowStatus] = useState<any>(initialWorkflowStatus || null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
