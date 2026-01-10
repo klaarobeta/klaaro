@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, Bot, User, Sparkles, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
+import { Send, Loader2, Bot, User, Sparkles, CheckCircle2, AlertCircle, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 
@@ -9,42 +9,32 @@ interface ChatMessage {
   content: string
   timestamp: Date
   status?: 'pending' | 'complete' | 'error'
-  needsApproval?: boolean
-  step?: string
 }
 
 interface ChatPanelProps {
   projectId: string
-  onAnalysisComplete: (analysis: any) => void
-  onPreprocessingComplete: (result: any) => void
-  onModelComplete: (result: any) => void
+  onWorkflowUpdate: (status: any) => void
 }
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
 
-export default function ChatPanel({
-  projectId,
-  onAnalysisComplete,
-  onPreprocessingComplete,
-  onModelComplete
-}: ChatPanelProps) {
+export default function ChatPanel({ projectId, onWorkflowUpdate }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       role: 'assistant',
-      content: `👋 Hi! I'm your AI AutoML assistant powered by Claude.\n\nI'll help you build a machine learning model from your data. Just tell me what you want to predict!\n\n**For example:**\n• "Build a house price predictor"\n• "Predict customer churn"\n• "Classify images"\n\nWhat would you like to build?`,
+      content: `👋 **Welcome to AI AutoML!**\n\nI'm powered by Claude AI and I'll build your ML model automatically.\n\n**Just tell me what you want to predict!**\n\nExamples:\n• "Predict house prices"\n• "Classify customer churn"\n• "Forecast sales"\n\nI'll analyze your data, preprocess it, generate the best model, and iterate to improve accuracy - all automatically! 🚀`,
       timestamp: new Date(),
       status: 'complete'
     }
   ])
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [currentStep, setCurrentStep] = useState<'idle' | 'analysis' | 'preprocessing' | 'training'>('idle')
-  const [awaitingApproval, setAwaitingApproval] = useState(false)
-  const [pendingAction, setPendingAction] = useState<{step: string, data: any} | null>(null)
+  const [currentWorkflowStep, setCurrentWorkflowStep] = useState<string>('')
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -53,6 +43,15 @@ export default function ChatPanel({
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current)
+      }
+    }
+  }, [])
 
   const addMessage = (role: 'user' | 'assistant' | 'system', content: string, options?: Partial<ChatMessage>) => {
     const newMessage: ChatMessage = {
@@ -73,157 +72,84 @@ export default function ChatPanel({
     ))
   }
 
-  // Step 1: AI Analysis
-  const handleAnalysis = async (userPrompt: string) => {
-    setCurrentStep('analysis')
-    setIsProcessing(true)
+  const startWorkflowPolling = (statusMessageId: string) => {
+    pollingInterval.current = setInterval(async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/ai/${projectId}/workflow-status`)
+        if (!response.ok) return
 
-    const thinkingId = addMessage('assistant', '🤔 Analyzing your data with AI...', { status: 'pending' })
+        const data = await response.json()
+        const log = data.workflow_log || []
+        const status = data.status
 
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/ai/analyze-data`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_id: projectId, user_prompt: userPrompt })
-      })
+        // Update current step message
+        const lastLog = log[log.length - 1]
+        if (lastLog) {
+          const stepName = lastLog.step
+          const stepStatus = lastLog.status
+          
+          let statusText = ''
+          if (stepName === 'initialization') statusText = '📁 Loading your data...'
+          else if (stepName === 'analysis') statusText = '🔍 AI analyzing your data with Claude...'
+          else if (stepName === 'preprocessing') statusText = '⚙️ Preprocessing data automatically...'
+          else if (stepName === 'model_generation') statusText = '🤖 Generating optimal model code...'
+          else if (stepName === 'iteration') statusText = '🔄 Iterating to improve accuracy...'
+          else if (stepName === 'error') statusText = `❌ Error: ${lastLog.error}`
 
-      if (!response.ok) throw new Error('Analysis failed')
+          if (stepStatus === 'complete') {
+            statusText = statusText.replace('...', ' ✅')
+          }
 
-      const result = await response.json()
-      const analysis = result.analysis
+          setCurrentWorkflowStep(statusText)
+          updateMessage(statusMessageId, { content: statusText, status: 'pending' })
+        }
 
-      updateMessage(thinkingId, { 
-        content: `✅ Analysis complete!\n\n**Task Type:** ${analysis.task_type}\n**Target Variable:** ${analysis.target_column}\n**Confidence:** ${analysis.confidence}\n\n**Reasoning:** ${analysis.reasoning}\n\n**Data Quality Issues:**\n${analysis.data_quality.issues.map((issue: string) => `• ${issue}`).join('\n')}\n\n**Preprocessing Plan:**\n${analysis.preprocessing_steps.map((step: any, idx: number) => `${idx + 1}. ${step.description}`).join('\n')}\n\n**Recommended Models:** ${analysis.recommended_models.join(', ')}\n\n---\n\n✋ **Ready to proceed with preprocessing?**\nType **"yes"**, **"approve"**, or **"continue"** to proceed.`,
-        status: 'complete',
-        needsApproval: true
-      })
+        // Send updates to parent
+        onWorkflowUpdate(data)
 
-      setAwaitingApproval(true)
-      setPendingAction({ step: 'preprocessing', data: analysis })
-      onAnalysisComplete(analysis)
+        // Check if complete
+        if (status === 'trained') {
+          if (pollingInterval.current) {
+            clearInterval(pollingInterval.current)
+          }
 
-    } catch (error: any) {
-      updateMessage(thinkingId, { 
-        content: `❌ Analysis failed: ${error.message}`,
-        status: 'error'
-      })
-      toast({
-        title: 'Analysis failed',
-        description: error.message,
-        variant: 'destructive'
-      })
-    } finally {
-      setIsProcessing(false)
-      setCurrentStep('idle')
-    }
-  }
+          updateMessage(statusMessageId, {
+            content: `🎉 **Model trained successfully!**\n\nYour AI model is ready and has been optimized for accuracy through multiple iterations.\n\nCheck the preview panel on the right to see:\n• Model performance metrics\n• Visualizations\n• Download options\n\nYou can now ask me questions about the model or request predictions!`,
+            status: 'complete'
+          })
 
-  // Step 2: Apply Preprocessing
-  const handlePreprocessing = async () => {
-    setCurrentStep('preprocessing')
-    setIsProcessing(true)
-    setAwaitingApproval(false)
+          setIsProcessing(false)
+          
+          toast({
+            title: '🎉 Model Ready!',
+            description: 'Your AI model has been trained successfully'
+          })
+        } else if (status === 'failed') {
+          if (pollingInterval.current) {
+            clearInterval(pollingInterval.current)
+          }
 
-    const thinkingId = addMessage('assistant', '⚙️ Preprocessing your data...', { status: 'pending' })
+          const errorLog = log.find((l: any) => l.step === 'error')
+          const errorMsg = errorLog?.error || 'Unknown error'
 
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/ai/apply-preprocessing`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          project_id: projectId, 
-          step: 'preprocessing',
-          approved: true 
-        })
-      })
+          updateMessage(statusMessageId, {
+            content: `❌ **Build failed**\n\nError: ${errorMsg}\n\nPlease try again or contact support.`,
+            status: 'error'
+          })
 
-      if (!response.ok) throw new Error('Preprocessing failed')
+          setIsProcessing(false)
 
-      const result = await response.json()
+          toast({
+            title: 'Build failed',
+            description: errorMsg,
+            variant: 'destructive'
+          })
+        }
 
-      updateMessage(thinkingId, { 
-        content: `✅ Preprocessing complete!\n\n**Features Created:** ${result.details.features_created}\n**Training Samples:** ${result.details.train_samples}\n**Test Samples:** ${result.details.test_samples}\n\n**Steps Applied:**\n${result.details.steps_applied.map((step: string) => `• ${step}`).join('\n')}\n\n---\n\n✋ **Ready to generate and train the model?**\nType **"yes"** to proceed.`,
-        status: 'complete',
-        needsApproval: true
-      })
-
-      setAwaitingApproval(true)
-      setPendingAction({ step: 'training', data: result })
-      onPreprocessingComplete(result)
-
-    } catch (error: any) {
-      updateMessage(thinkingId, { 
-        content: `❌ Preprocessing failed: ${error.message}`,
-        status: 'error'
-      })
-      toast({
-        title: 'Preprocessing failed',
-        description: error.message,
-        variant: 'destructive'
-      })
-    } finally {
-      setIsProcessing(false)
-      setCurrentStep('idle')
-    }
-  }
-
-  // Step 3: Generate and Train Model
-  const handleModelGeneration = async () => {
-    setCurrentStep('training')
-    setIsProcessing(true)
-    setAwaitingApproval(false)
-
-    const thinkingId = addMessage('assistant', '🚀 Generating optimal model code with AI...', { status: 'pending' })
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/ai/generate-model`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          project_id: projectId,
-          user_requirements: 'Generate the most accurate model',
-          approved_preprocessing: pendingAction?.data || {}
-        })
-      })
-
-      if (!response.ok) throw new Error('Model generation failed')
-
-      const result = await response.json()
-
-      let metricsText = ''
-      if (result.metrics) {
-        metricsText = Object.entries(result.metrics)
-          .map(([key, value]) => `• ${key}: ${typeof value === 'number' ? (value * 100).toFixed(2) + '%' : value}`)
-          .join('\n')
+      } catch (error) {
+        console.error('Polling error:', error)
       }
-
-      updateMessage(thinkingId, { 
-        content: `✅ Model trained successfully!\n\n**Model:** ${result.model_name}\n\n**Performance Metrics:**\n${metricsText}\n\n**Cross-Validation:**\n• Mean Score: ${result.cv_mean ? (result.cv_mean * 100).toFixed(2) + '%' : 'N/A'}\n• Std Dev: ${result.cv_std ? (result.cv_std * 100).toFixed(2) + '%' : 'N/A'}\n\n---\n\n🎉 **Your model is ready!**\n\nCheck the preview panel on the right to see the model visualization.\n\nYou can now:\n• Download the trained model\n• Make predictions\n• Ask me questions about the model`,
-        status: 'complete'
-      })
-
-      onModelComplete(result)
-      setPendingAction(null)
-
-      toast({
-        title: '🎉 Model ready!',
-        description: `${result.model_name} trained successfully`
-      })
-
-    } catch (error: any) {
-      updateMessage(thinkingId, { 
-        content: `❌ Model generation failed: ${error.message}`,
-        status: 'error'
-      })
-      toast({
-        title: 'Model generation failed',
-        description: error.message,
-        variant: 'destructive'
-      })
-    } finally {
-      setIsProcessing(false)
-      setCurrentStep('idle')
-    }
+    }, 2000) // Poll every 2 seconds
   }
 
   const handleSend = async () => {
@@ -232,23 +158,42 @@ export default function ChatPanel({
     const userMessage = input.trim()
     addMessage('user', userMessage)
     setInput('')
+    setIsProcessing(true)
 
-    // Check if user is approving
-    const approvalWords = ['yes', 'approve', 'continue', 'proceed', 'ok', 'sure']
-    const isApproval = approvalWords.some(word => userMessage.toLowerCase().includes(word))
+    // Add status message
+    const statusId = addMessage('assistant', '🚀 Starting automated build...', { status: 'pending' })
 
-    if (awaitingApproval && isApproval && pendingAction) {
-      if (pendingAction.step === 'preprocessing') {
-        await handlePreprocessing()
-      } else if (pendingAction.step === 'training') {
-        await handleModelGeneration()
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/ai/auto-build`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          project_id: projectId, 
+          user_prompt: userMessage 
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to start build')
       }
-    } else if (currentStep === 'idle' && !awaitingApproval) {
-      // Initial prompt - start analysis
-      await handleAnalysis(userMessage)
-    } else {
-      // User said something else
-      addMessage('assistant', `I'm ${awaitingApproval ? 'waiting for your approval' : 'processing'}. ${awaitingApproval ? 'Please type "yes" to continue.' : 'Please wait...'}`)
+
+      // Start polling for progress
+      startWorkflowPolling(statusId)
+
+    } catch (error: any) {
+      updateMessage(statusId, {
+        content: `❌ Failed to start: ${error.message}\n\nPlease ensure:\n• Dataset is uploaded\n• Project is properly configured\n\nTry again or check Developer Mode for manual control.`,
+        status: 'error'
+      })
+      
+      setIsProcessing(false)
+      
+      toast({
+        title: 'Failed to start',
+        description: error.message,
+        variant: 'destructive'
+      })
     }
   }
 
@@ -267,13 +212,19 @@ export default function ChatPanel({
           <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h2 className="font-semibold text-white">AI Assistant</h2>
             <div className="flex items-center gap-2 text-xs text-white/80">
-              <div className="w-2 h-2 rounded-full bg-green-400"></div>
-              <span>Powered by Claude</span>
+              <div className={`w-2 h-2 rounded-full ${isProcessing ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
+              <span>{isProcessing ? 'Building...' : 'Ready'} • Powered by Claude</span>
             </div>
           </div>
+          {isProcessing && (
+            <div className="flex items-center gap-2 text-white text-xs bg-white/10 px-3 py-1 rounded-full">
+              <Zap className="w-3 h-3 animate-pulse" />
+              <span>Auto-Building</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -325,11 +276,7 @@ export default function ChatPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={
-              awaitingApproval 
-                ? 'Type "yes" to approve...' 
-                : 'Type your message...'
-            }
+            placeholder={isProcessing ? 'AI is building your model...' : 'Describe what you want to predict...'}
             disabled={isProcessing}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
           />
@@ -345,11 +292,16 @@ export default function ChatPanel({
             )}
           </Button>
         </div>
-        {currentStep !== 'idle' && (
+        {isProcessing && currentWorkflowStep && (
           <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
-            <Clock className="w-3 h-3" />
-            <span>Processing: {currentStep}</span>
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>{currentWorkflowStep}</span>
           </div>
+        )}
+        {!isProcessing && (
+          <p className="text-xs text-gray-500 mt-2">
+            💡 Fully automatic - No approvals needed! Just describe your goal and I'll build the model.
+          </p>
         )}
       </div>
     </div>
