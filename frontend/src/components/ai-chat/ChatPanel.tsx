@@ -186,15 +186,15 @@ export default function ChatPanel({ projectId, onWorkflowUpdate, initialWorkflow
     setInput('')
     setIsProcessing(true)
 
-    // Detect if this is a question about existing model or a new training request
-    const questionKeywords = ['predict', 'prediction', 'what if', 'how much', 'estimate', 'value', 'tell me', 'explain', 'how does', 'why', 'what is']
-    const isQuestion = questionKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))
-    
     // Check if model is already trained
-    const hasTrainedModel = currentWorkflowStep === 'trained' || workflowStatus?.status === 'trained'
-
-    if (isQuestion && hasTrainedModel) {
-      // User is asking a question about the trained model
+    const modelIsTrained = workflowStatus?.status === 'trained'
+    
+    // Detect if this is a question about existing model
+    const questionWords = ['what', 'how', 'why', 'predict', 'prediction', 'tell me', 'explain', 'show me', 'can you', 'score', 'accuracy', 'performance']
+    const hasQuestionWord = questionWords.some(word => userMessage.toLowerCase().includes(word))
+    
+    // If model is trained AND user is asking a question, use ask-question endpoint
+    if (modelIsTrained && hasQuestionWord) {
       const statusId = addMessage('assistant', '🤔 Let me check that for you...', { status: 'pending' })
       
       try {
