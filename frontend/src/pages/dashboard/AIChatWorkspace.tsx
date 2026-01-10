@@ -59,6 +59,7 @@ export default function AIChatWorkspace() {
           <ChatPanel
             projectId={projectId!}
             onWorkflowUpdate={handleWorkflowUpdate}
+            initialWorkflowStatus={workflowStatus}
           />
         </div>
         <div className="w-1/2">
