@@ -15,17 +15,15 @@ export default function PreviewPanel({ projectId, workflowStatus }: PreviewPanel
   const currentStep = workflowStatus?.status || 'idle'
   const workflowLog = workflowStatus?.workflow_log || []
 
-  // Get data from workflow log
-  const analysisData = workflowLog.find((log: any) => log.step === 'analysis')?.result
-  const preprocessingData = workflowLog.find((log: any) => log.step === 'preprocessing')?.result
-  const modelData = workflowLog.find((log: any) => log.step === 'model_generation')?.result
+  // Check if model is trained
+  const isTrained = currentStep === 'trained'
 
   // Load visualization when trained
   useEffect(() => {
-    if (currentStep === 'trained') {
+    if (isTrained && !visualizationData && !loading) {
       loadVisualizationData()
     }
-  }, [currentStep])
+  }, [isTrained, projectId])
 
   const loadVisualizationData = async () => {
     setLoading(true)
@@ -61,7 +59,8 @@ export default function PreviewPanel({ projectId, workflowStatus }: PreviewPanel
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {currentStep === 'idle' && (
+        {/* Show idle state only if not trained */}
+        {!isTrained && currentStep === 'idle' && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mb-4">
               <BarChart className="w-10 h-10 text-blue-600" />
@@ -73,8 +72,97 @@ export default function PreviewPanel({ projectId, workflowStatus }: PreviewPanel
           </div>
         )}
 
-        {/* Analysis Results */}
-        {analysisData && (
+        {/* Show trained model visualization */}
+        {isTrained && visualizationData && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <h3 className="font-semibold text-gray-900">Model Trained Successfully</h3>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
+              <p className="text-sm text-gray-600 mb-2">Model</p>
+              <p className="text-2xl font-bold text-gray-900 mb-4">{visualizationData.model_name}</p>
+              
+              <div className="grid grid-cols-3 gap-3">
+                {visualizationData.metrics && Object.entries(visualizationData.metrics).map(([key, value]: [string, any]) => (
+                  <div key={key} className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase mb-1">{key}</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {typeof value === 'number' ? value.toFixed(2) : value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Regression Plot */}
+            {visualizationData.task_type === 'regression' && visualizationData.regression_plot && (
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h5 className="text-sm font-medium text-gray-700 mb-4">Prediction Quality: Actual vs Predicted</h5>
+                <div className="relative h-64 bg-white rounded border">
+                  <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
+                    {/* Grid */}
+                    <defs>
+                      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
+                      </pattern>
+                    </defs>
+                    <rect width="400" height="200" fill="url(#grid)" />
+                    
+                    {/* Axes */}
+                    <line x1="40" y1="180" x2="380" y2="180" stroke="#374151" strokeWidth="2" />
+                    <line x1="40" y1="20" x2="40" y2="180" stroke="#374151" strokeWidth="2" />
+                    
+                    {/* Perfect prediction line (diagonal) */}
+                    <line x1="40" y1="180" x2="380" y2="20" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,5" opacity="0.5" />
+                    <text x="350" y="35" fill="#3b82f6" fontSize="10">Perfect</text>
+                    
+                    {/* Data points */}
+                    {visualizationData.regression_plot.actual.map((actual: number, idx: number) => {
+                      const predicted = visualizationData.regression_plot.predicted[idx]
+                      const allActual = visualizationData.regression_plot.actual
+                      const allPredicted = visualizationData.regression_plot.predicted
+                      const maxVal = Math.max(...allActual, ...allPredicted)
+                      const minVal = Math.min(...allActual, ...allPredicted)
+                      const range = maxVal - minVal || 1
+                      
+                      const x = 40 + ((actual - minVal) / range) * 340
+                      const y = 180 - ((predicted - minVal) / range) * 160
+                      
+                      return (
+                        <circle
+                          key={idx}
+                          cx={x}
+                          cy={y}
+                          r="3"
+                          fill="#8b5cf6"
+                          opacity="0.7"
+                        />
+                      )
+                    })}
+                    
+                    {/* Labels */}
+                    <text x="210" y="198" textAnchor="middle" fontSize="12" fill="#6b7280">Actual Values →</text>
+                    <text x="15" y="100" textAnchor="middle" fontSize="12" fill="#6b7280" transform="rotate(-90 15 100)">← Predicted</text>
+                  </svg>
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Points closer to the blue diagonal line = better predictions
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loading state */}
+        {isTrained && !visualizationData && loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <span className="ml-2 text-gray-600">Loading visualization...</span>
+          </div>
+        )}
+      </div>
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
