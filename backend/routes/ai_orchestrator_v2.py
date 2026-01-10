@@ -505,6 +505,130 @@ async def get_visualization_data(project_id: str):
         viz_data["regression_plot"] = {
             "actual": model_info["test_actuals"][:100],
             "predicted": model_info["predictions"][:100]
+
+
+# ============ PREDICTION ENDPOINT ============
+
+@router.post("/predict")
+async def make_prediction(request: PredictionRequest):
+    """
+    Make predictions using a trained model without retraining
+    """
+    try:
+        # Get project and check if model exists
+        project = await db.projects.find_one({"id": request.project_id}, {"_id": 0})
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        if project.get("status") != "trained":
+            raise HTTPException(status_code=400, detail="No trained model available. Please train a model first.")
+        
+        model_info = project.get("ai_generated_model")
+        if not model_info or not model_info.get("model_path"):
+            raise HTTPException(status_code=400, detail="Model file not found")
+        
+        # Load the trained model
+        model_path = model_info["model_path"]
+        if not os.path.exists(model_path):
+            raise HTTPException(status_code=404, detail="Model file not found on disk")
+        
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
+        
+        # Load preprocessing data to get feature names and transformers
+        preprocessing_result = project.get("preprocessing_results")
+        if not preprocessing_result:
+            raise HTTPException(status_code=400, detail="Preprocessing data not found")
+        
+        processed_path = preprocessing_result.get("processed_path")
+        with open(processed_path, 'rb') as f:
+            prep_data = pickle.load(f)
+        
+        feature_names = prep_data["feature_names"]
+        transformers = prep_data.get("transformers", {})
+        
+        # Create input dataframe with correct feature order
+        input_df = pd.DataFrame([request.input_data])
+        
+        # Reorder to match training features
+        missing_features = set(feature_names) - set(input_df.columns)
+        if missing_features:
+            for feat in missing_features:
+                input_df[feat] = 0  # Fill missing with 0
+        
+        input_df = input_df[feature_names]
+        
+        # Make prediction
+        prediction = model.predict(input_df)
+        
+        return {
+            "project_id": request.project_id,
+            "prediction": float(prediction[0]),
+            "model_name": model_info.get("model_name"),
+            "input_data": request.input_data,
+            "task_type": project.get("task_type")
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+
+@router.post("/ask-question")
+async def ask_model_question(request: AutoMLRequest):
+    """
+    Answer questions about the trained model using AI
+    """
+    try:
+        # Get project
+        project = await db.projects.find_one({"id": request.project_id}, {"_id": 0})
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        if project.get("status") != "trained":
+            return {
+                "answer": "No trained model available yet. Please train a model first by describing what you want to predict."
+            }
+        
+        model_info = project.get("ai_generated_model", {})
+        analysis = project.get("ai_analysis", {})
+        
+        # Create context for Claude
+        context = f"""You are helping a user understand their trained ML model.
+
+Model Details:
+- Type: {model_info.get('model_name')}
+- Task: {analysis.get('task_type')}
+- Target: {analysis.get('target_column')}
+- Metrics: {json.dumps(model_info.get('metrics', {}))}
+- Best Score: {model_info.get('best_score')}
+
+User Question: {request.user_prompt}
+
+Provide a clear, helpful answer. If they're asking for predictions with specific values, 
+tell them the model can predict and ask them to provide the input feature values."""
+
+        # Ask Claude
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"question_{datetime.now().timestamp()}",
+            system_message="You are a helpful ML assistant."
+        ).with_model("anthropic", "claude-4-sonnet-20250514")
+        
+        message = UserMessage(text=context)
+        answer = await chat.send_message(message)
+        
+        return {
+            "answer": answer,
+            "model_name": model_info.get("model_name"),
+            "status": "answered"
+        }
+        
+    except Exception as e:
+        return {
+            "answer": f"Sorry, I encountered an error: {str(e)}",
+            "status": "error"
+        }
+
         }
     elif task_type == "classification":
         from sklearn.metrics import confusion_matrix
